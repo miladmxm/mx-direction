@@ -19,3 +19,11 @@ declare interface GeoJson {
     };
   }[];
 }
+declare interface AddressResult {
+  address: string;
+  category: string;
+  location: { x: number; y: number };
+  region: string;
+  title: string;
+  type: string;
+}

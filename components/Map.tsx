@@ -1,7 +1,8 @@
 "use dom";
-import { useEffect, useRef } from "react";
+import { useDOMImperativeHandle, type DOMImperativeFactory } from "expo/dom";
+import React, { forwardRef, useEffect, useRef } from "react";
 import { MapComponent, MapTypes } from "@neshan-maps-platform/mapbox-gl-react";
-import nmp_mapboxgl from "@neshan-maps-platform/mapbox-gl";
+import nmp_mapboxgl, { Marker, Map } from "@neshan-maps-platform/mapbox-gl";
 // import polyline from "@mapbox/polyline";
 import "@/global.css";
 import "@neshan-maps-platform/mapbox-gl/dist/NeshanMapboxGl.css";
@@ -101,14 +102,17 @@ var exampleResponse = {
     },
   ],
 };
-function Map({
-  onClick,
-  center,
-}: {
-  onClick: () => void;
-  center: [number, number];
-}) {
-  const mapRef = useRef();
+
+export interface MapComponentRef extends DOMImperativeFactory {
+  getToUserLocation: () => void;
+  resetBearing: () => void;
+}
+export default forwardRef<MapComponentRef, object>(function Map(
+  props: { center: [number, number] },
+  ref
+) {
+  const center = props.center;
+  const mapRef = useRef<Map>(null);
   const mapSetter = (neshanMap) => {
     // Add custom marker 1
     mapRef.current = neshanMap;
@@ -357,26 +361,57 @@ function Map({
       // });
     });
   };
-  const timerForRunFunc: { current: any } = useRef<number>();
-  useEffect(() => {
-    timerForRunFunc.current = setTimeout(() => {
-      const pos = new nmp_mapboxgl.Marker({ color: "#fac", draggable: true })
-        .setLngLat(center || [51.31173, 35.758954])
-        .addTo(mapRef.current);
+  const userMarker = useRef<Marker>();
 
-      pos.on("dragend", () => {
-        console.log(pos.getLngLat());
-      });
-    }, 5000);
-    return () => clearTimeout(timerForRunFunc.current);
+  useDOMImperativeHandle(
+    ref,
+    () => ({
+      getToUserLocation: () => {
+        mapRef.current.flyTo({
+          center,
+          zoom: 16,
+          bearing: 0,
+        });
+        userMarker.current?.setLngLat(center);
+      },
+      resetBearing: () => {
+        mapRef.current.flyTo({
+          bearing: 0,
+        });
+      },
+    }),
+    []
+  );
+
+  // useEffect(() => {
+  //   if (center && center[0]) {
+  //   }
+  // }, [center]);
+  useEffect(() => {
+    mapRef.current.on("load", () => {
+      const el = document.createElement("div");
+      el.innerHTML = ` <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="#ffffff" viewBox="0 0 385.656 414.406">
+                      <path
+                          d="M64,414L219,73c16.8-28.3,57.727-27.685,74,0,4.306,9.285,156,343,156,343s7.734,52.626-50,50c-5.452-1.59-122-53-122-53s-0.227-93.146,0-112c-3.18-23.624-38.157-25.983-43,0-0.3,13.489,0,112,0,112L116,466S58.929,474.563,64,414Z"
+                          transform="translate(-63.688 -52)" />
+                  </svg>`;
+      el.className = "w-10 h-10 flex items-center justify-center";
+
+      userMarker.current = new nmp_mapboxgl.Marker(el, {
+        draggable: false,
+      })
+        .setLngLat(center || [0, 0])
+        .addTo(mapRef.current);
+    });
   }, []);
   return (
     <MapComponent
       className="w-full h-screen"
       options={{
         mapKey: process.env.EXPO_PUBLIC_NESHAN_ACCESS_TOKEN_MAP!,
-        mapType: MapTypes.neshanRasterNight,
-        zoom: 11,
+        mapType: MapTypes.neshanVectorNight,
+        zoom: 16,
+        maxZoom: 20,
         center: center,
         mapTypeControllerOptions: { show: true, position: "bottom-left" },
         poi: true,
@@ -385,6 +420,4 @@ function Map({
       mapSetter={mapSetter}
     />
   );
-}
-
-export default Map;
+});
