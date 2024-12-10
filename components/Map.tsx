@@ -3,7 +3,7 @@ import { useDOMImperativeHandle, type DOMImperativeFactory } from "expo/dom";
 import React, { forwardRef, useEffect, useRef } from "react";
 import { MapComponent, MapTypes } from "@neshan-maps-platform/mapbox-gl-react";
 import nmp_mapboxgl, { Marker, Map } from "@neshan-maps-platform/mapbox-gl";
-// import polyline from "@mapbox/polyline";
+import polyline from "@mapbox/polyline";
 import "@/global.css";
 import "@neshan-maps-platform/mapbox-gl/dist/NeshanMapboxGl.css";
 // example of response data from direction-API v4
@@ -13,75 +13,165 @@ var exampleResponse = {
   routes: [
     {
       overview_polyline: {
-        points: "cy{xEa{sxHCyEr@}FIi@MWi@Um@L[l@A^{Jr@",
+        points: "ccmxEwujxHFdAxR_BNRNQg@mPoAePJ{BOsDaAoC}AkOPUB_@MWWIoByJcDoI",
       },
       legs: [
         {
-          summary: "میدان انقلاب اسلامی - کارگر شمالی",
+          summary: "برادران شکری - ورامینی",
           distance: {
-            value: 555.0,
-            text: "۵۷۵ متر",
+            value: 1798.0,
+            text: "۲ کیلومتر",
           },
           duration: {
-            value: 99.0,
-            text: "۲ دقیقه",
+            value: 220.0,
+            text: "۴ دقیقه",
           },
           steps: [
             {
-              name: "آزادی",
-              instruction: "در جهت شرق در آزادی قرار بگیرید",
-              bearing_after: 88,
+              name: "نهم",
+              instruction: "در جهت غرب در نهم قرار بگیرید",
+              bearing_after: 263,
               type: "depart",
               distance: {
-                value: 197.0,
-                text: "۲۰۰ متر",
+                value: 32.0,
+                text: "۳۲ متر",
               },
               duration: {
-                value: 35.0,
-                text: "۱ دقیقه",
+                value: 18.0,
+                text: "کمتر از ۱ دقیقه",
               },
-              polyline: "cy{xEa{sxHAkBAmBDa@BKHs@BWD]J{@",
-              start_location: [51.388811, 35.70082],
+              polyline: "ccmxEwujxHFdA",
+              start_location: [51.341882, 35.625615],
             },
             {
-              name: "کارگر شمالی",
-              instruction: "در میدان انقلاب اسلامی، از خروجی سوم، خارج شوید",
-              rotaryName: "میدان انقلاب اسلامی",
-              bearing_after: 111,
-              type: "rotary",
-              modifier: "straight",
-              exit: 3,
+              name: "برادران شکری",
+              instruction: "به سمت برادران شکری، به چپ بپیچید",
+              bearing_after: 172,
+              type: "turn",
+              modifier: "left",
               distance: {
-                value: 146.0,
-                text: "۱۵۰ متر",
+                value: 354.0,
+                text: "۳۷۵ متر",
               },
               duration: {
-                value: 38.0,
+                value: 67.0,
                 text: "۱ دقیقه",
               },
-              polyline: "}w{xEohtxHDSBUCUESEKGKSOUEW@UJORKXAN?N",
-              start_location: [51.390956, 35.700632],
+              polyline: "{bmxEqsjxHNAz@IXARCv@GXCv@GNAtGi@d@Eh@G",
+              start_location: [51.341533, 35.62558],
+            },
+            {
+              name: "ورامینی",
+              instruction: "در ورامینی، از خروجیِ دوم، خارج شوید",
+              bearing_after: 262,
+              type: "roundabout",
+              modifier: "right",
+              exit: 2,
+              distance: {
+                value: 33.0,
+                text: "۳۳ متر",
+              },
+              duration: {
+                value: 5.0,
+                text: "کمتر از ۱ دقیقه",
+              },
+              polyline: "aolxEqvjxH?D@B@B@BB@D?B?DA@CBE?E?I",
+              start_location: [51.342014, 35.622412],
             },
             {
               name: "",
               instruction: "به مسیر خود ادامه دهید",
-              bearing_after: 354,
-              type: "exit rotary",
-              modifier: "right",
-              exit: 3,
+              bearing_after: 81,
+              type: "exit roundabout",
+              modifier: "straight",
+              exit: 2,
               distance: {
-                value: 212.0,
-                text: "۲۲۵ متر",
+                value: 551.0,
+                text: "۵۷۵ متر",
               },
               duration: {
-                value: 39.0,
+                value: 58.0,
                 text: "۱ دقیقه",
               },
-              polyline: "a|{xEuitxH_ADaBLO@{BRmAH",
-              start_location: [51.391154, 35.701293],
+              polyline: "anlxEyvjxHCSAYGiBGsCCgAMoD_@_F_@yEOkBHiB",
+              start_location: [51.342046, 35.622254],
             },
             {
-              name: "کارگر شمالی",
+              name: "ورامینی",
+              instruction: "در میدان مادر، از خروجی اول، خارج شوید",
+              rotaryName: "میدان مادر",
+              bearing_after: 105,
+              type: "rotary",
+              modifier: "straight",
+              exit: 1,
+              distance: {
+                value: 124.0,
+                text: "۱۲۵ متر",
+              },
+              duration: {
+                value: 11.0,
+                text: "کمتر از ۱ دقیقه",
+              },
+              polyline: "oqlxEm|kxH@QE_AC}@Eu@CUCMGKMM",
+              start_location: [51.34807, 35.622804],
+            },
+            {
+              name: "",
+              instruction: "به مسیر خود ادامه دهید",
+              bearing_after: 56,
+              type: "exit rotary",
+              modifier: "slight right",
+              exit: 1,
+              distance: {
+                value: 285.0,
+                text: "۳۰۰ متر",
+              },
+              duration: {
+                value: 32.0,
+                text: "۱ دقیقه",
+              },
+              polyline: "{rlxEqdlxH[u@G[e@yEw@qH",
+              start_location: [51.349371, 35.623017],
+            },
+            {
+              name: "ورامینی",
+              instruction: "در میدان باران، از خروجی دوم، خارج شوید",
+              rotaryName: "میدان باران",
+              bearing_after: 151,
+              type: "rotary",
+              modifier: "right",
+              exit: 2,
+              distance: {
+                value: 58.0,
+                text: "۷۵ متر",
+              },
+              duration: {
+                value: 9.0,
+                text: "کمتر از ۱ دقیقه",
+              },
+              polyline: "}vlxEowlxHFCDGBIBI?I?KCICGEEECECEAE?",
+              start_location: [51.352397, 35.623672],
+            },
+            {
+              name: "",
+              instruction: "به مسیر خود ادامه دهید",
+              bearing_after: 71,
+              type: "exit rotary",
+              modifier: "right",
+              exit: 2,
+              distance: {
+                value: 360.0,
+                text: "۳۷۵ متر",
+              },
+              duration: {
+                value: 47.0,
+                text: "۱ دقیقه",
+              },
+              polyline: "mwlxEgzlxHs@iE{@oDwAgEAEu@_BSa@",
+              start_location: [51.35284, 35.623754],
+            },
+            {
+              name: "ورامینی",
               instruction: "در مقصد قرار دارید",
               bearing_after: 0,
               type: "arrive",
@@ -93,8 +183,8 @@ var exampleResponse = {
                 value: 0.0,
                 text: "",
               },
-              polyline: "}g|xEahtxH",
-              start_location: [51.390885, 35.703188],
+              polyline: "a`mxEqpmxH",
+              start_location: [51.356413, 35.625131],
             },
           ],
         },
@@ -111,7 +201,8 @@ export default forwardRef<MapComponentRef, object>(function Map(
   props: { center: [number, number] },
   ref
 ) {
-  const center = props.center;
+  const { center } = props;
+  console.log(center);
   const mapRef = useRef<Map>(null);
   const mapSetter = (neshanMap) => {
     // Add custom marker 1
@@ -179,186 +270,94 @@ export default forwardRef<MapComponentRef, object>(function Map(
 
     // Add route
 
-    // const exampleResponse = {
-    //   routes: [
-    //     {
-    //       overview_polyline: {
-    //         points: "cy{xEa{sxHCyEr@}FIi@MWi@Um@L[l@A^{Jr@",
-    //       },
-    //       legs: [
-    //         {
-    //           summary: "میدان انقلاب اسلامی - کارگر شمالی",
-    //           distance: {
-    //             value: 555.0,
-    //             text: "۵۷۵ متر",
-    //           },
-    //           duration: {
-    //             value: 99.0,
-    //             text: "۲ دقیقه",
-    //           },
-    //           steps: [
-    //             {
-    //               name: "آزادی",
-    //               instruction: "در جهت شرق در آزادی قرار بگیرید",
-    //               bearing_after: 88,
-    //               type: "depart",
-    //               distance: {
-    //                 value: 197.0,
-    //                 text: "۲۰۰ متر",
-    //               },
-    //               duration: {
-    //                 value: 35.0,
-    //                 text: "۱ دقیقه",
-    //               },
-    //               polyline: "cy{xEa{sxHAkBAmBDa@BKHs@BWD]J{@",
-    //               start_location: [51.388811, 35.70082],
-    //             },
-    //             {
-    //               name: "کارگر شمالی",
-    //               instruction:
-    //                 "در میدان انقلاب اسلامی، از خروجی سوم، خارج شوید",
-    //               rotaryName: "میدان انقلاب اسلامی",
-    //               bearing_after: 111,
-    //               type: "rotary",
-    //               modifier: "straight",
-    //               exit: 3,
-    //               distance: {
-    //                 value: 146.0,
-    //                 text: "۱۵۰ متر",
-    //               },
-    //               duration: {
-    //                 value: 38.0,
-    //                 text: "۱ دقیقه",
-    //               },
-    //               polyline: "}w{xEohtxHDSBUCUESEKGKSOUEW@UJORKXAN?N",
-    //               start_location: [51.390956, 35.700632],
-    //             },
-    //             {
-    //               name: "",
-    //               instruction: "به مسیر خود ادامه دهید",
-    //               bearing_after: 354,
-    //               type: "exit rotary",
-    //               modifier: "right",
-    //               exit: 3,
-    //               distance: {
-    //                 value: 212.0,
-    //                 text: "۲۲۵ متر",
-    //               },
-    //               duration: {
-    //                 value: 39.0,
-    //                 text: "۱ دقیقه",
-    //               },
-    //               polyline: "a|{xEuitxH_ADaBLO@{BRmAH",
-    //               start_location: [51.391154, 35.701293],
-    //             },
-    //             {
-    //               name: "کارگر شمالی",
-    //               instruction: "در مقصد قرار دارید",
-    //               bearing_after: 0,
-    //               type: "arrive",
-    //               distance: {
-    //                 value: 0.0,
-    //                 text: "",
-    //               },
-    //               duration: {
-    //                 value: 0.0,
-    //                 text: "",
-    //               },
-    //               polyline: "}g|xEahtxH",
-    //               start_location: [51.390885, 35.703188],
-    //             },
-    //           ],
-    //         },
-    //       ],
-    //     },
-    //   ],
-    // };
+    const routes = [];
+    const points = [];
 
-    // const routes = [];
-    // const points = [];
+    for (let k = 0; k < exampleResponse.routes.length; k++) {
+      for (let j = 0; j < exampleResponse.routes[k].legs.length; j++) {
+        for (
+          let i = 0;
+          i < exampleResponse.routes[k].legs[j].steps.length;
+          i++
+        ) {
+          const step = exampleResponse.routes[k].legs[j].steps[i]["polyline"];
+          const point =
+            exampleResponse.routes[k].legs[j].steps[i]["start_location"];
 
-    // for (let k = 0; k < exampleResponse.routes.length; k++) {
-    //   for (let j = 0; j < exampleResponse.routes[k].legs.length; j++) {
-    //     for (
-    //       let i = 0;
-    //       i < exampleResponse.routes[k].legs[j].steps.length;
-    //       i++
-    //     ) {
-    //       const step = exampleResponse.routes[k].legs[j].steps[i]["polyline"];
-    //       const point =
-    //         exampleResponse.routes[k].legs[j].steps[i]["start_location"];
+          const route = polyline.decode(step, 5);
+          
+          route.map((item) => {
+            item.reverse();
+          });
 
-    //       const route = polyline.decode(step, 5);
+          routes.push(route);
+          points.push(point);
+        }
+      }
+    }
 
-    //       route.map((item) => {
-    //         item.reverse();
-    //       });
+    const routeObj = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: {
+            type: "MultiLineString",
+            coordinates: routes,
+          },
+        },
+      ],
+    };
 
-    //       routes.push(route);
-    //       points.push(point);
-    //     }
-    //   }
-    // }
-
-    // const routeObj = {
-    //   type: "FeatureCollection",
-    //   features: [
-    //     {
-    //       type: "Feature",
-    //       geometry: {
-    //         type: "MultiLineString",
-    //         coordinates: routes,
-    //       },
-    //     },
-    //   ],
-    // };
-
-    // const pointsObj = {
-    //   type: "FeatureCollection",
-    //   features: [
-    //     {
-    //       type: "Feature",
-    //       geometry: {
-    //         type: "MultiPoint",
-    //         coordinates: points,
-    //       },
-    //     },
-    //   ],
-    // };
+    const pointsObj = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: {
+            type: "MultiPoint",
+            coordinates: points,
+          },
+        },
+      ],
+    };
 
     neshanMap.on("load", function () {
-      // neshanMap.addSource("route", {
-      //   type: "geojson",
-      //   data: routeObj,
-      // });
-      // neshanMap.addSource("points1", {
-      //   type: "geojson",
-      //   data: pointsObj,
-      // });
-      // neshanMap.addLayer({
-      //   id: "route-line",
-      //   type: "line",
-      //   source: "route",
-      //   layout: {
-      //     "line-join": "round",
-      //     "line-cap": "round",
-      //   },
-      //   paint: {
-      //     "line-color": "#250ECD",
-      //     "line-width": 9,
-      //   },
-      // });
-      // neshanMap.addLayer({
-      //   id: "points1",
-      //   type: "circle",
-      //   source: "points1",
-      //   paint: {
-      //     "circle-color": "#9fbef9",
-      //     "circle-stroke-color": "#FFFFFF",
-      //     "circle-stroke-width": 2,
-      //     "circle-radius": 5,
-      //   },
-      // });
+      neshanMap.addSource("route", {
+        type: "geojson",
+        data: routeObj,
+      });
+      neshanMap.addSource("points1", {
+        type: "geojson",
+        data: pointsObj,
+      });
+      neshanMap.addLayer({
+        id: "route-line",
+        type: "line",
+        source: "route",
+        layout: {
+          "line-join": "round",
+          "line-cap": "round",
+        },
+        paint: {
+          "line-color": "#250ECD",
+          "line-opacity":0.5,
+          "line-width": 9,
+        },
+      });
+      neshanMap.addLayer({
+        id: "points1",
+        type: "circle",
+        source: "points1",
+        paint: {
+          "circle-color": "#9fbef9",
+          "circle-opacity":0.5,
+          "circle-stroke-color": "#FFFFFF",
+          "circle-stroke-opacity":0.5,
+          "circle-stroke-width": 2,
+          "circle-radius": 5,
+        },
+      });
     });
   };
   const userMarker = useRef<Marker>();
@@ -366,7 +365,7 @@ export default forwardRef<MapComponentRef, object>(function Map(
   useDOMImperativeHandle(
     ref,
     () => ({
-      getToUserLocation: () => {
+      getToUserLocation: (center: [number, number]) => {
         mapRef.current.flyTo({
           center,
           zoom: 16,
@@ -383,12 +382,12 @@ export default forwardRef<MapComponentRef, object>(function Map(
     []
   );
 
-  // useEffect(() => {
-  //   if (center && center[0]) {
-  //   }
-  // }, [center]);
   useEffect(() => {
     mapRef.current.on("load", () => {
+      mapRef.current.on("click", (e) => {
+        console.log(`A click event has occurred at ${e.lngLat}`);
+      });
+
       const el = document.createElement("div");
       el.innerHTML = ` <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="#ffffff" viewBox="0 0 385.656 414.406">
                       <path

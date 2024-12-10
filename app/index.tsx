@@ -13,7 +13,7 @@ import SearchLocation from "@/components/SearchLocation";
 const Index = () => {
   const { setUserLocation, userLatitude, userLongitude } = useLocationStore();
   const { location, getAccessLocation } = useLocation();
-  const mapRef = useRef<MapComponentRef>(null);
+  const mapRef = useRef<MapComponentRef | null>(null);
   async function resetUserLocation() {
     await getAccessLocation();
     try {
@@ -48,8 +48,8 @@ const Index = () => {
       <View className="bg-slate-700 flex-1">
         <Map
           center={[
-            Number(location?.coords.longitude),
-            Number(location?.coords.latitude),
+            location?.coords.longitude || 0,
+            location?.coords.latitude || 0,
           ]}
           ref={mapRef}
         />
