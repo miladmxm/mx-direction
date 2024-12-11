@@ -20,6 +20,7 @@
     "@neshan-maps-platform/mapbox-gl-react": "^1.0.2",
     "@react-navigation/bottom-tabs": "^7.0.0",
     "@react-navigation/native": "^7.0.0",
+    "@types/mapbox__polyline": "^1.0.5",
     "axios": "^1.7.9",
     "expo": "~52.0.17",
     "expo-blur": "~14.0.1",

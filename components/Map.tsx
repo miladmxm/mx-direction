@@ -1,14 +1,65 @@
 "use dom";
 import { useDOMImperativeHandle, type DOMImperativeFactory } from "expo/dom";
-import React, { forwardRef, useEffect, useRef } from "react";
+import React, { forwardRef, useEffect, useRef, useState } from "react";
 import { MapComponent, MapTypes } from "@neshan-maps-platform/mapbox-gl-react";
-import nmp_mapboxgl, { Marker, Map } from "@neshan-maps-platform/mapbox-gl";
+import nmp_mapboxgl from "@neshan-maps-platform/mapbox-gl";
 import polyline from "@mapbox/polyline";
 import "@/global.css";
 import "@neshan-maps-platform/mapbox-gl/dist/NeshanMapboxGl.css";
+import SDKMap from "@neshan-maps-platform/mapbox-gl/dist/src/core/Map";
+import { JSONValue } from "expo/build/dom/dom.types";
+import { getDirectionsPath } from "@/services/HTTP";
 // example of response data from direction-API v4
 // request URL : https://api.neshan.org/v4/direction?type=car&origin=35.700785062128666,51.38881156907395&destination=35.703189177622946,51.3908984545814&alternative=false
+const routeAndPointGEOjson = (res) => {
+  const routes = [];
+  const points = [];
 
+  for (let k = 0; k < res.routes.length; k++) {
+    for (let j = 0; j < res.routes[k].legs.length; j++) {
+      for (let i = 0; i < res.routes[k].legs[j].steps.length; i++) {
+        const step = res.routes[k].legs[j].steps[i]["polyline"];
+        const point = res.routes[k].legs[j].steps[i]["start_location"];
+
+        const route = polyline.decode(step, 5);
+        // console.log(route);
+        route.map((item) => {
+          item.reverse();
+        });
+
+        routes.push(route);
+        points.push(point);
+      }
+    }
+  }
+
+  const routeObj = {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        geometry: {
+          type: "MultiLineString",
+          coordinates: routes,
+        },
+      },
+    ],
+  };
+
+  const pointsObj = {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        geometry: {
+          type: "MultiPoint",
+          coordinates: points,
+        },
+      },
+    ],
+  };
+  return { pointsObj, routeObj };
+};
 var exampleResponse = {
   routes: [
     {
@@ -194,134 +245,23 @@ var exampleResponse = {
 };
 
 export interface MapComponentRef extends DOMImperativeFactory {
-  getToUserLocation: () => void;
+  getToUserLocation: (latlng: [number, number]) => void;
   resetBearing: () => void;
 }
 export default forwardRef<MapComponentRef, object>(function Map(
-  props: { center: [number, number] },
-  ref
+  { center }: { center: [number, number] },
+  ref: any
 ) {
-  const { center } = props;
-  console.log(center);
-  const mapRef = useRef<Map>(null);
-  const mapSetter = (neshanMap) => {
+  const [userLocation, setUserLocation] = useState<[number, number]>(
+    center || [0, 0]
+  );
+  const mapRef = useRef<any>(null);
+  const mapSetter = (neshanMap: any) => {
     // Add custom marker 1
     mapRef.current = neshanMap;
 
-    // Create a popup
-
-    // const popup = new nmp_mapboxgl.Popup({ offset: 25 }).setText(
-    //   "با نگه داشتن مارکر می‌توانید آن را روی نقشه جابه‌جا کنید"
-    // );
-
-    // // Add custom marker 2
-
-    // new nmp_mapboxgl.Marker({
-    //   color: "#00F955",
-    //   draggable: true,
-    // })
-    //   .setPopup(popup)
-    //   .setLngLat([51.4055941, 35.70019216])
-    //   .addTo(neshanMap)
-    //   .togglePopup();
-
-    // Add some custom markers using geojson
-
-    // const geojson: GeoJson = {
-    //   type: "FeatureCollection",
-    //   features: [
-    //     {
-    //       type: "Feature",
-    //       geometry: {
-    //         type: "Point",
-    //         coordinates: [51.338057, 35.699736],
-    //       },
-    //       properties: {
-    //         title: "میدان آزادی",
-    //         description:
-    //           "نمایش مارکر با آیکون اختصاصی <br/> مختصات:<br/> [51.338057 , 35.699736]",
-    //       },
-    //     },
-    //     {
-    //       type: "Feature",
-    //       geometry: {
-    //         type: "Point",
-    //         coordinates: [51.375265, 35.74472],
-    //       },
-    //       properties: {
-    //         title: "برج میلاد",
-    //         description: "مختصات:<br/> [51.375265 , 35.744720]",
-    //       },
-    //     },
-    //   ],
-    // };
-
-    // for (const feature of geojson.features) {
-    //   new nmp_mapboxgl.Marker()
-    //     .setLngLat(feature.geometry.coordinates)
-    //     .setPopup(
-    //       new nmp_mapboxgl.Popup({ offset: 40 }).setHTML(
-    //         `<h3>${feature.properties.title}</h3><p>${feature.properties.description}</p>`
-    //       )
-    //     )
-    //     .addTo(neshanMap)
-    //     .togglePopup();
-    // }
-
     // Add route
-
-    const routes = [];
-    const points = [];
-
-    for (let k = 0; k < exampleResponse.routes.length; k++) {
-      for (let j = 0; j < exampleResponse.routes[k].legs.length; j++) {
-        for (
-          let i = 0;
-          i < exampleResponse.routes[k].legs[j].steps.length;
-          i++
-        ) {
-          const step = exampleResponse.routes[k].legs[j].steps[i]["polyline"];
-          const point =
-            exampleResponse.routes[k].legs[j].steps[i]["start_location"];
-
-          const route = polyline.decode(step, 5);
-          
-          route.map((item) => {
-            item.reverse();
-          });
-
-          routes.push(route);
-          points.push(point);
-        }
-      }
-    }
-
-    const routeObj = {
-      type: "FeatureCollection",
-      features: [
-        {
-          type: "Feature",
-          geometry: {
-            type: "MultiLineString",
-            coordinates: routes,
-          },
-        },
-      ],
-    };
-
-    const pointsObj = {
-      type: "FeatureCollection",
-      features: [
-        {
-          type: "Feature",
-          geometry: {
-            type: "MultiPoint",
-            coordinates: points,
-          },
-        },
-      ],
-    };
-
+    const { routeObj, pointsObj } = routeAndPointGEOjson(exampleResponse);
     neshanMap.on("load", function () {
       neshanMap.addSource("route", {
         type: "geojson",
@@ -341,7 +281,7 @@ export default forwardRef<MapComponentRef, object>(function Map(
         },
         paint: {
           "line-color": "#250ECD",
-          "line-opacity":0.5,
+          "line-opacity": 0.5,
           "line-width": 9,
         },
       });
@@ -351,27 +291,27 @@ export default forwardRef<MapComponentRef, object>(function Map(
         source: "points1",
         paint: {
           "circle-color": "#9fbef9",
-          "circle-opacity":0.5,
+          "circle-opacity": 0.5,
           "circle-stroke-color": "#FFFFFF",
-          "circle-stroke-opacity":0.5,
+          "circle-stroke-opacity": 0.5,
           "circle-stroke-width": 2,
           "circle-radius": 5,
         },
       });
     });
   };
-  const userMarker = useRef<Marker>();
+  const userMarker = useRef<any>();
 
   useDOMImperativeHandle(
     ref,
     () => ({
-      getToUserLocation: (center: [number, number]) => {
-        mapRef.current.flyTo({
-          center,
+      getToUserLocation: (latlng: [number, number]) => {
+        setUserLocation(latlng);
+        mapRef.current?.flyTo({
+          center: latlng,
           zoom: 16,
-          bearing: 0,
         });
-        userMarker.current?.setLngLat(center);
+        userMarker.current?.setLngLat(latlng);
       },
       resetBearing: () => {
         mapRef.current.flyTo({
@@ -379,14 +319,41 @@ export default forwardRef<MapComponentRef, object>(function Map(
         });
       },
     }),
-    []
+    [mapRef.current]
   );
-
+  const abortControlRef = useRef<AbortController | null>(null);
   useEffect(() => {
     mapRef.current.on("load", () => {
-      mapRef.current.on("click", (e) => {
-        console.log(`A click event has occurred at ${e.lngLat}`);
-      });
+      mapRef.current.on(
+        "click",
+        async ({ lngLat }: { lngLat: { lng: number; lat: number } }) => {
+          console.log(
+            `A click event has occurred at ${lngLat.lng} , ${lngLat.lat}`
+          );
+          const route = mapRef.current.getSource("route");
+          const points1 = mapRef.current.getSource("points1");
+
+          if (abortControlRef.current) {
+            abortControlRef.current.abort();
+          }
+          abortControlRef.current = new AbortController();
+          try {
+            const { data } = await getDirectionsPath(
+              {
+                origin: userLocation.reverse().join(),
+                destination: `${lngLat.lat},${lngLat.lng}`,
+              },
+              abortControlRef.current.signal
+            );
+            const { pointsObj, routeObj } = routeAndPointGEOjson(data);
+            route.setData(routeObj);
+            points1.setData(pointsObj);
+            
+          } catch (err) {
+            
+          }
+        }
+      );
 
       const el = document.createElement("div");
       el.innerHTML = ` <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="#ffffff" viewBox="0 0 385.656 414.406">
@@ -399,7 +366,7 @@ export default forwardRef<MapComponentRef, object>(function Map(
       userMarker.current = new nmp_mapboxgl.Marker(el, {
         draggable: false,
       })
-        .setLngLat(center || [0, 0])
+        .setLngLat(userLocation || [0, 0])
         .addTo(mapRef.current);
     });
   }, []);
@@ -411,7 +378,7 @@ export default forwardRef<MapComponentRef, object>(function Map(
         mapType: MapTypes.neshanVectorNight,
         zoom: 16,
         maxZoom: 20,
-        center: center,
+        center: userLocation,
         mapTypeControllerOptions: { show: true, position: "bottom-left" },
         poi: true,
         traffic: true,

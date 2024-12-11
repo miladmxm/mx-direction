@@ -66,7 +66,10 @@ const Index = () => {
         <TouchableOpacity
           onPress={() => {
             resetUserLocation();
-            mapRef.current?.getToUserLocation();
+            mapRef.current?.getToUserLocation([
+              location?.coords.longitude || 0,
+              location?.coords.latitude || 0,
+            ]);
           }}
           className="center w-14 h-14 rounded-full bg-white shadow-2xl"
         >
