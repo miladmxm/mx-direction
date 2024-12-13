@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   FlatList,
   Text,
@@ -11,39 +11,72 @@ import CloseIcon from "@/assets/icons/close.svg";
 import { useLocationStore } from "@/store";
 import { searchLocation } from "@/services/HTTP";
 
-const SearchLocation = () => {
+const SearchLocation = ({
+  selectLocation,
+}: {
+  selectLocation: (lngLat: LngLat) => void;
+}) => {
   const { userLatitude, userLongitude } = useLocationStore();
   const [textInput, setTextInput] = useState<string>("");
   const [resultSearch, setResultSearch] = useState<AddressResult[]>([]);
-  async function handleSearch() {
-    const { data } = await searchLocation(
-      userLatitude || 0,
-      userLongitude || 0,
-      textInput
-    );
-    console.log(data.items);
-    setResultSearch(data.items);
+  const searchAbortControl = useRef<AbortController | null>(null);
+  const timeoutForSearch = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const clearSearch = () => {
+    if (searchAbortControl.current) {
+      searchAbortControl.current.abort();
+    }
+    setResultSearch([]);
+    setTextInput("");
+  };
+  const handleSearchInputType = (text: string) => {
+    if (timeoutForSearch.current) {
+      clearTimeout(timeoutForSearch.current);
+    }
+    setTextInput(text);
+    timeoutForSearch.current = setTimeout(() => {
+      handleSearch(text);
+    }, 2500);
+  };
+  async function handleSearch(searchText: string) {
+    try {
+      if (searchAbortControl.current) {
+        searchAbortControl.current.abort();
+      }
+      searchAbortControl.current = new AbortController();
+      const { data } = await searchLocation(
+        userLatitude || 0,
+        userLongitude || 0,
+        searchText,
+        searchAbortControl.current.signal
+      );
+      setResultSearch(data.items);
+      searchAbortControl.current = null;
+    } catch (err) {}
   }
-
+  const selectResultItem = (item: AddressResult) => {
+    const { x: lng, y: lat } = item.location;
+    selectLocation([lng, lat]);
+    clearSearch();
+  };
   return (
     <>
-      <View className="h-20 w-full bg-white/30 shadow-lg rounded-2xl flex flex-row gap-2 p-2">
-        <TouchableOpacity onPress={handleSearch} className="w-10 center">
-          <SearchIcon color={"#ffffff"} width={20} height={20} />
+      <View className="h-20 w-full flex flex-row items-center bg-white shadow-2xl rounded-2xl overflow-hidden mb-5">
+        <TouchableOpacity
+          onPress={() => handleSearch(textInput)}
+          className="h-full center bg-white aspect-square"
+        >
+          <SearchIcon color={"#000000"} width={20} height={20} />
         </TouchableOpacity>
-        <View className="h-full flex-auto flex justify-center bg-white rounded-full relative">
+        <View className="flex-auto flex justify-center relative">
           <TextInput
-            className="pr-3 pl-10"
+            className="pl-10 rounded-full"
             placeholder="کجا میروید؟"
             value={textInput}
-            onChangeText={setTextInput}
+            onChangeText={(text) => handleSearchInputType(text)}
           />
           {(textInput.length > 0 || resultSearch.length > 0) && (
             <TouchableOpacity
-              onPress={() => {
-                setResultSearch([]);
-                setTextInput("");
-              }}
+              onPress={clearSearch}
               className="absolute left-0 center h-full w-10 z-20"
             >
               <CloseIcon width={20} height={20} color="#333" />
@@ -51,19 +84,18 @@ const SearchLocation = () => {
           )}
         </View>
       </View>
-      {resultSearch.length > 0 && (
-        <FlatList
-          data={resultSearch}
-          className=" w-full max-h-96 mt-2 bg-white/60 rounded-xl"
-          contentContainerClassName="p-2"
-          renderItem={({ item }) => (
-            <TouchableOpacity className="p-2 bg-white/90 mb-2 rounded-lg">
-              <Text className="font-bold text-lg">{item?.title || ""}</Text>
-              <Text>{item?.address || ""}</Text>
-            </TouchableOpacity>
-          )}
-        />
-      )}
+      {resultSearch.map((item) => {
+        return (
+          <TouchableOpacity
+            key={`${item.location.x}-${item.location.y}`}
+            onPress={() => selectResultItem(item)}
+            className="p-2 bg-white/90 mb-2 rounded-lg"
+          >
+            <Text className="font-bold text-lg">{item?.title || ""}</Text>
+            <Text>{item?.address || ""}</Text>
+          </TouchableOpacity>
+        );
+      })}
     </>
   );
 };

@@ -10,6 +10,7 @@ export function useLocation() {
     if (status) {
       const userLocation = await Location.getCurrentPositionAsync();
       setLocation(userLocation);
+      return userLocation
     } else {
       setLocation(null);
     }

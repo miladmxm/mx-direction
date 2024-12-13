@@ -9,58 +9,11 @@ import "@neshan-maps-platform/mapbox-gl/dist/NeshanMapboxGl.css";
 import SDKMap from "@neshan-maps-platform/mapbox-gl/dist/src/core/Map";
 import { JSONValue } from "expo/build/dom/dom.types";
 import { getDirectionsPath } from "@/services/HTTP";
+import routeAndPointGEOjson from "@/utils/createGeoJsonRoute";
 // example of response data from direction-API v4
 // request URL : https://api.neshan.org/v4/direction?type=car&origin=35.700785062128666,51.38881156907395&destination=35.703189177622946,51.3908984545814&alternative=false
-const routeAndPointGEOjson = (res) => {
-  const routes = [];
-  const points = [];
 
-  for (let k = 0; k < res.routes.length; k++) {
-    for (let j = 0; j < res.routes[k].legs.length; j++) {
-      for (let i = 0; i < res.routes[k].legs[j].steps.length; i++) {
-        const step = res.routes[k].legs[j].steps[i]["polyline"];
-        const point = res.routes[k].legs[j].steps[i]["start_location"];
-
-        const route = polyline.decode(step, 5);
-        // console.log(route);
-        route.map((item) => {
-          item.reverse();
-        });
-
-        routes.push(route);
-        points.push(point);
-      }
-    }
-  }
-
-  const routeObj = {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        geometry: {
-          type: "MultiLineString",
-          coordinates: routes,
-        },
-      },
-    ],
-  };
-
-  const pointsObj = {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        geometry: {
-          type: "MultiPoint",
-          coordinates: points,
-        },
-      },
-    ],
-  };
-  return { pointsObj, routeObj };
-};
-var exampleResponse = {
+var exampleResponse: RoutingResponse = {
   routes: [
     {
       overview_polyline: {
@@ -245,33 +198,45 @@ var exampleResponse = {
 };
 
 export interface MapComponentRef extends DOMImperativeFactory {
-  getToUserLocation: (latlng: [number, number]) => void;
+  getToUserLocation: (lngLat: LngLat) => void;
+  changeRoute: (routeObj: GeoJson, pointsObj: GeoJson) => void;
   resetBearing: () => void;
 }
 export default forwardRef<MapComponentRef, object>(function Map(
-  { center }: { center: [number, number] },
+  {
+    center,
+    selectLocation,
+  }: { center: LngLat; selectLocation: (lngLat: LngLat) => void },
   ref: any
 ) {
-  const [userLocation, setUserLocation] = useState<[number, number]>(
-    center || [0, 0]
+  const [userLocation, setUserLocation] = useState<LngLat>(
+    center || [51.43899933649559, 35.68670997613197]
   );
   const mapRef = useRef<any>(null);
-  const mapSetter = (neshanMap: any) => {
-    // Add custom marker 1
-    mapRef.current = neshanMap;
+  const userMarker = useRef<any>();
 
-    // Add route
-    const { routeObj, pointsObj } = routeAndPointGEOjson(exampleResponse);
-    neshanMap.on("load", function () {
-      neshanMap.addSource("route", {
+  const setRouteAndPointsInMap = ({
+    route,
+    point,
+  }: {
+    route: GeoJson;
+    point: GeoJson;
+  }) => {
+    const routeInMap = mapRef.current.getSource("route");
+    const pointsInMap = mapRef.current.getSource("points1");
+    if (routeInMap && pointsInMap) {
+      routeInMap.setData(route);
+      pointsInMap.setData(point);
+    } else {
+      mapRef.current?.addSource("route", {
         type: "geojson",
-        data: routeObj,
+        data: route,
       });
-      neshanMap.addSource("points1", {
+      mapRef.current?.addSource("points1", {
         type: "geojson",
-        data: pointsObj,
+        data: point,
       });
-      neshanMap.addLayer({
+      mapRef.current?.addLayer({
         id: "route-line",
         type: "line",
         source: "route",
@@ -285,7 +250,7 @@ export default forwardRef<MapComponentRef, object>(function Map(
           "line-width": 9,
         },
       });
-      neshanMap.addLayer({
+      mapRef.current?.addLayer({
         id: "points1",
         type: "circle",
         source: "points1",
@@ -298,20 +263,25 @@ export default forwardRef<MapComponentRef, object>(function Map(
           "circle-radius": 5,
         },
       });
-    });
+    }
   };
-  const userMarker = useRef<any>();
+  const mapSetter = (neshanMap: any) => {
+    mapRef.current = neshanMap;
+  };
 
   useDOMImperativeHandle(
     ref,
     () => ({
-      getToUserLocation: (latlng: [number, number]) => {
-        setUserLocation(latlng);
+      getToUserLocation: (lngLat: LngLat) => {
+        setUserLocation(lngLat);
         mapRef.current?.flyTo({
-          center: latlng,
+          center: lngLat,
           zoom: 16,
         });
-        userMarker.current?.setLngLat(latlng);
+        userMarker.current?.setLngLat(lngLat);
+      },
+      changeRoute: (routeObj: GeoJson, pointsObj: GeoJson) => {
+        setRouteAndPointsInMap({ route: routeObj, point: pointsObj });
       },
       resetBearing: () => {
         mapRef.current.flyTo({
@@ -321,37 +291,12 @@ export default forwardRef<MapComponentRef, object>(function Map(
     }),
     [mapRef.current]
   );
-  const abortControlRef = useRef<AbortController | null>(null);
   useEffect(() => {
     mapRef.current.on("load", () => {
       mapRef.current.on(
         "click",
         async ({ lngLat }: { lngLat: { lng: number; lat: number } }) => {
-          console.log(
-            `A click event has occurred at ${lngLat.lng} , ${lngLat.lat}`
-          );
-          const route = mapRef.current.getSource("route");
-          const points1 = mapRef.current.getSource("points1");
-
-          if (abortControlRef.current) {
-            abortControlRef.current.abort();
-          }
-          abortControlRef.current = new AbortController();
-          try {
-            const { data } = await getDirectionsPath(
-              {
-                origin: userLocation.reverse().join(),
-                destination: `${lngLat.lat},${lngLat.lng}`,
-              },
-              abortControlRef.current.signal
-            );
-            const { pointsObj, routeObj } = routeAndPointGEOjson(data);
-            route.setData(routeObj);
-            points1.setData(pointsObj);
-            
-          } catch (err) {
-            
-          }
+          selectLocation([lngLat.lng, lngLat.lat]);
         }
       );
 
@@ -379,7 +324,7 @@ export default forwardRef<MapComponentRef, object>(function Map(
         zoom: 16,
         maxZoom: 20,
         center: userLocation,
-        mapTypeControllerOptions: { show: true, position: "bottom-left" },
+        mapTypeControllerOptions: { show: false, position: "bottom-left" },
         poi: true,
         traffic: true,
       }}

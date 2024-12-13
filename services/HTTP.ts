@@ -15,10 +15,15 @@ export const getAddressByLocation = (
 export const searchLocation = (
   lat: string | number,
   lon: string | number,
-  term: string
-) => axios.get(`v1/search?term=${term}&lat=${lat}&lng=${lon}`);
+  term: string,
+  signal: AbortSignal
+) => axios.get(`v1/search?term=${term}&lat=${lat}&lng=${lon}`, { signal });
 
 export const getDirectionsPath = (
-  {destination,origin}: { origin: string; destination: string },
+  { destination, origin }: { origin: string; destination: string },
   signal: AbortSignal
-) => axios.get("v4/direction", { params:{origin,destination}, signal: signal });
+) =>
+  axios.get("v4/direction", {
+    params: { origin, destination },
+    signal: signal,
+  });
