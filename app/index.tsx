@@ -1,5 +1,5 @@
 import { View, TouchableOpacity, Text } from "react-native";
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "@/global.css";
 import Map, { type MapComponentRef } from "@/components/Map";
@@ -23,39 +23,38 @@ const Index = () => {
     userAddress,
     targets,
   } = useLocationStore();
-  console.log(targets);
   const { location, getAccessLocation } = useLocation();
-  console.log(location?.coords)
+  const [bottomSheetIndex, setBottomSheetIndex] = useState<number>(1)
+
   const mapRef = useRef<MapComponentRef | null>(null);
   const bottomSheetRef = useRef<BottomSheet | null>(null);
+  const abortControlRef = useRef<AbortController | null>(null);
 
   async function resetUserLocation() {
     try {
-      const location = await getAccessLocation();
-      if (location) {
+      const updatedLocation = await getAccessLocation();
+      if (updatedLocation && updatedLocation.coords) {
         const userAddress = await getAddressByLocation(
-          location.coords.latitude,
-          location.coords.longitude
+          updatedLocation.coords.latitude,
+          updatedLocation.coords.longitude
         );
 
         setUserLocation(
-          location.coords.latitude || 35.68670997613197,
-          location.coords.longitude || 51.43899933649559,
+          updatedLocation.coords.latitude,
+          updatedLocation.coords.longitude,
           userAddress?.data?.formatted_address || null
         );
-        // if (mapRef.current && mapRef.current.getToUserLocation) {
-        //   mapRef.current.getToUserLocation([
-        //     location?.coords.longitude || 51.43899933649559,
-        //     location?.coords.latitude || 35.68670997613197,
-        //   ]);
-        // }
+        mapRef.current?.getToUserLocation([
+          updatedLocation?.coords.longitude,
+          updatedLocation?.coords.latitude,
+        ]);
       }
     } catch (err) {
       console.log(err);
     }
   }
-  const abortControlRef = useRef<AbortController | null>(null);
   async function selectLocation(lngLat: LngLat) {
+    mapRef.current?.setTargetMarkerPos(lngLat)
     if (abortControlRef.current) {
       abortControlRef.current.abort();
     }
@@ -79,9 +78,6 @@ const Index = () => {
       console.log(err);
     }
   }
-  useEffect(() => {
-    resetUserLocation();
-  }, [mapRef.current]);
   return (
     <SafeAreaView
       style={{ direction: "rtl" }}
@@ -93,6 +89,7 @@ const Index = () => {
         <View className="bg-slate-700 flex-1">
           <Map
             selectLocation={selectLocation}
+            resetUserLocation={resetUserLocation}
             center={[
               location?.coords.longitude || 51.43899933649559,
               location?.coords.latitude || 35.68670997613197,
@@ -101,7 +98,7 @@ const Index = () => {
             ref={mapRef}
           />
         </View>
-        <View className="absolute bottom-36 right-5 flex flex-col gap-5">
+        <View className={`absolute ${bottomSheetIndex===0?"bottom-10":"bottom-36"} right-5 flex flex-col gap-5`}>
           <TouchableOpacity
             onPress={() => {
               mapRef.current?.resetBearing();
@@ -122,8 +119,9 @@ const Index = () => {
         <BottomSheet
           ref={bottomSheetRef}
           enableDynamicSizing={false}
-          snapPoints={[110, "45%", "85%"]}
-          index={1}
+          snapPoints={[20,110, "45%", "85%"]}
+          index={bottomSheetIndex}
+          onChange={setBottomSheetIndex}
         >
           <BottomSheetScrollView
             style={{ flex: 1, padding: 10, paddingTop: 0 }}
@@ -131,12 +129,14 @@ const Index = () => {
             <View className="w-full h-max p-2 z-50">
               <SearchLocation selectLocation={selectLocation} />
             </View>
+            {Object.keys(targets).length > 0 && (
+              <View className="flex flex-row border border-slate-500/30 p-4 rounded-lg items-center justify-start gap-2 w-full">
+                <LocationSearch width={25} height={25} color={"#000000"} />
+                <Text>از:</Text>
+                <Text className="flex-auto text-center">{userAddress}</Text>
+              </View>
+            )}
 
-            <View className="flex flex-row border border-slate-500/30 p-4 rounded-lg items-center justify-start gap-2 w-full">
-              <LocationSearch width={25} height={25} color={"#000000"} />
-              <Text>از:</Text>
-              <Text className="flex-auto text-center">{userAddress}</Text>
-            </View>
             {Object.keys(targets).map((targetKey) => {
               const targetValue = targets[targetKey];
               return (

@@ -67,9 +67,9 @@ const SearchLocation = ({
         >
           <SearchIcon color={"#000000"} width={20} height={20} />
         </TouchableOpacity>
-        <View className="flex-auto flex justify-center relative">
+        <View className="flex-auto flex flex-row items-center justify-center relative">
           <TextInput
-            className="pl-10 rounded-full"
+            className={`rounded-full flex-auto`}
             placeholder="کجا میروید؟"
             value={textInput}
             onChangeText={(text) => handleSearchInputType(text)}
@@ -77,7 +77,7 @@ const SearchLocation = ({
           {(textInput.length > 0 || resultSearch.length > 0) && (
             <TouchableOpacity
               onPress={clearSearch}
-              className="absolute left-0 center h-full w-10 z-20"
+              className="center w-10 z-20"
             >
               <CloseIcon width={20} height={20} color="#333" />
             </TouchableOpacity>
