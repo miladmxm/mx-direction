@@ -1,5 +1,5 @@
-import { View, TouchableOpacity, Text } from "react-native";
-import React, { useEffect, useRef, useState } from "react";
+import { View, Text, Animated } from "react-native";
+import { useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "@/global.css";
 import Map, { type MapComponentRef } from "@/components/Map";
@@ -13,6 +13,8 @@ import SearchLocation from "@/components/SearchLocation";
 import routeAndPointGEOjson from "@/utils/createGeoJsonRoute";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import CustomButton from "@/components/CustomButton";
+import { useSharedValue } from "react-native-reanimated";
 
 const Index = () => {
   const {
@@ -24,7 +26,7 @@ const Index = () => {
     targets,
   } = useLocationStore();
   const { location, getAccessLocation } = useLocation();
-  const [bottomSheetIndex, setBottomSheetIndex] = useState<number>(1)
+  const [bottomSheetIndex, setBottomSheetIndex] = useState<number>(1);
 
   const mapRef = useRef<MapComponentRef | null>(null);
   const bottomSheetRef = useRef<BottomSheet | null>(null);
@@ -54,7 +56,7 @@ const Index = () => {
     }
   }
   async function selectLocation(lngLat: LngLat) {
-    mapRef.current?.setTargetMarkerPos(lngLat)
+    mapRef.current?.setTargetMarkerPos(lngLat);
     if (abortControlRef.current) {
       abortControlRef.current.abort();
     }
@@ -78,6 +80,9 @@ const Index = () => {
       console.log(err);
     }
   }
+
+  const height = useSharedValue(0);
+
   return (
     <SafeAreaView
       style={{ direction: "rtl" }}
@@ -98,28 +103,23 @@ const Index = () => {
             ref={mapRef}
           />
         </View>
-        <View className={`absolute ${bottomSheetIndex===0?"bottom-10":"bottom-36"} right-5 flex flex-col gap-5`}>
-          <TouchableOpacity
-            onPress={() => {
-              mapRef.current?.resetBearing();
-            }}
-            className="center w-14 h-14 rounded-full bg-white shadow-2xl"
-          >
-            <CompassIcon width={26} color={"#333333"} height={26} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => {
-              resetUserLocation();
-            }}
-            className="center w-14 h-14 rounded-full bg-white shadow-2xl"
-          >
-            <LocationSearch width={26} color={"#333333"} height={26} />
-          </TouchableOpacity>
-        </View>
+        <Animated.View
+          style={{ height }}
+          className={`absolute ${bottomSheetIndex === 0 ? "bottom-10" : "bottom-36"} right-5 flex flex-col gap-5`}
+        >
+          <CustomButton
+            onPress={() => mapRef.current?.resetBearing()}
+            icon={<CompassIcon width={26} color={"#333333"} height={26} />}
+          />
+          <CustomButton
+            onPress={resetUserLocation}
+            icon={<LocationSearch width={26} color={"#333333"} height={26} />}
+          />
+        </Animated.View>
         <BottomSheet
           ref={bottomSheetRef}
           enableDynamicSizing={false}
-          snapPoints={[20,110, "45%", "85%"]}
+          snapPoints={[20, 110, "45%", "85%"]}
           index={bottomSheetIndex}
           onChange={setBottomSheetIndex}
         >
