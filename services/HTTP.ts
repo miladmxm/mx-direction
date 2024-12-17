@@ -20,10 +20,20 @@ export const searchLocation = (
 ) => axios.get(`v1/search?term=${term}&lat=${lat}&lng=${lon}`, { signal });
 
 export const getDirectionsPath = (
-  { destination, origin }: { origin: string; destination: string },
+  {
+    destination,
+    origin,
+    type,
+    avoidTrafficZone,
+  }: {
+    origin: string;
+    destination: string;
+    type: DirectionType;
+    avoidTrafficZone: boolean;
+  },
   signal: AbortSignal
 ) =>
   axios.get("v4/direction", {
-    params: { origin, destination },
+    params: { origin, destination, type, avoidTrafficZone },
     signal: signal,
   });

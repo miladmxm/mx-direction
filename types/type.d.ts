@@ -27,6 +27,14 @@ declare interface AddressResult {
   type: string;
 }
 
+type DirectionType = "motorcycle" | "car";
+declare interface DirectionParameters {
+  type: DirectionType;
+  trafficZone: boolean;
+  setType: (type: DirectionType) => void;
+  toggleTrafficZone: () => void;
+}
+
 declare type LngLat = [number, number];
 
 type DistanceDuration = {

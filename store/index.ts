@@ -23,3 +23,10 @@ export const useLocationStore = create<UserLocation>((set) => ({
       },
     }),
 }));
+
+export const useDirectionParameters = create<DirectionParameters>((set) => ({
+  trafficZone: false,
+  type: "car",
+  setType: (type) => set({ type }),
+  toggleTrafficZone: () => set((state)=>({ trafficZone:!state.trafficZone })),
+}));

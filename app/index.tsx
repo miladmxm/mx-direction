@@ -1,20 +1,26 @@
-import { View, Text, Animated } from "react-native";
+import { View, Text, ToastAndroid, Alert } from "react-native";
 import { useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "@/global.css";
 import Map, { type MapComponentRef } from "@/components/Map";
-import { useLocationStore } from "@/store";
+import { useDirectionParameters, useLocationStore } from "@/store";
 import { getAddressByLocation, getDirectionsPath } from "@/services/HTTP";
 import LocationSearch from "@/assets/icons/locationSearch.svg";
 import Location from "@/assets/icons/location.svg";
 import CompassIcon from "@/assets/icons/compass.svg";
+import Traffic from "@/assets/icons/traffic.svg";
+import Motor from "@/assets/icons/motor.svg";
 import { useLocation } from "@/hooks/useLocation";
 import SearchLocation from "@/components/SearchLocation";
 import routeAndPointGEOjson from "@/utils/createGeoJsonRoute";
 import BottomSheet, { BottomSheetScrollView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import CustomButton from "@/components/CustomButton";
-import { useSharedValue } from "react-native-reanimated";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from "react-native-reanimated";
 
 const Index = () => {
   const {
@@ -26,8 +32,12 @@ const Index = () => {
     targets,
   } = useLocationStore();
   const { location, getAccessLocation } = useLocation();
-  const [bottomSheetIndex, setBottomSheetIndex] = useState<number>(1);
-
+  const {
+    setType,
+    toggleTrafficZone,
+    trafficZone,
+    type: directionType,
+  } = useDirectionParameters();
   const mapRef = useRef<MapComponentRef | null>(null);
   const bottomSheetRef = useRef<BottomSheet | null>(null);
   const abortControlRef = useRef<AbortController | null>(null);
@@ -55,7 +65,7 @@ const Index = () => {
       console.log(err);
     }
   }
-  async function selectLocation(lngLat: LngLat) {
+  async function selectLocationHandler(lngLat: LngLat) {
     mapRef.current?.setTargetMarkerPos(lngLat);
     if (abortControlRef.current) {
       abortControlRef.current.abort();
@@ -65,24 +75,38 @@ const Index = () => {
       const { data }: { data: RoutingResponse } = await getDirectionsPath(
         {
           origin: `${userLatitude},${userLongitude}`,
+          type: directionType,
+          avoidTrafficZone: trafficZone,
           destination: lngLat.reverse().join(),
         },
         abortControlRef.current.signal
       );
+      if (data.routes) {
+        const { pointsObj, routeObj } = routeAndPointGEOjson(data);
 
-      const { pointsObj, routeObj } = routeAndPointGEOjson(data);
-
-      bottomSheetRef.current?.collapse();
-      mapRef.current?.changeRoute(routeObj, pointsObj);
-      addTarget(lngLat[1], lngLat[0], data.routes[0].legs[0].summary);
-      abortControlRef.current = null;
+        bottomSheetRef.current?.collapse();
+        mapRef.current?.changeRoute(routeObj, pointsObj);
+        addTarget(lngLat[1], lngLat[0], data.routes[0].legs[0].summary);
+        abortControlRef.current = null;
+      } else {
+        mapRef.current?.cleanUpMap()
+        ToastAndroid.show('مسیریابی انجام نشد !', ToastAndroid.SHORT);
+      }
     } catch (err) {
       console.log(err);
     }
   }
 
-  const height = useSharedValue(0);
+  const bottomAnimation = useSharedValue(135);
+  const config = {
+    duration: 1000,
+  };
 
+  const bottomAnimationForBtnWrapper = useAnimatedStyle(() => {
+    return {
+      bottom: withSpring(bottomAnimation.value, config),
+    };
+  });
   return (
     <SafeAreaView
       style={{ direction: "rtl" }}
@@ -93,7 +117,7 @@ const Index = () => {
         </View> */}
         <View className="bg-slate-700 flex-1">
           <Map
-            selectLocation={selectLocation}
+            selectLocationHandler={selectLocationHandler}
             resetUserLocation={resetUserLocation}
             center={[
               location?.coords.longitude || 51.43899933649559,
@@ -103,10 +127,29 @@ const Index = () => {
             ref={mapRef}
           />
         </View>
+
         <Animated.View
-          style={{ height }}
-          className={`absolute ${bottomSheetIndex === 0 ? "bottom-10" : "bottom-36"} right-5 flex flex-col gap-5`}
+          style={bottomAnimationForBtnWrapper}
+          className={`absolute right-5 flex flex-col gap-5`}
         >
+          <CustomButton
+            className={
+              directionType === "motorcycle" ? "bg-green-300" : "opacity-30"
+            }
+            onPress={() => {
+              if (directionType === "motorcycle") {
+                setType("car");
+              } else {
+                setType("motorcycle");
+              }
+            }}
+            icon={<Motor width={26} color={"#333333"} height={26} />}
+          />
+          <CustomButton
+            className={trafficZone ? "bg-green-300" : "opacity-30"}
+            onPress={toggleTrafficZone}
+            icon={<Traffic width={26} color={"#333333"} height={26} />}
+          />
           <CustomButton
             onPress={() => mapRef.current?.resetBearing()}
             icon={<CompassIcon width={26} color={"#333333"} height={26} />}
@@ -120,14 +163,20 @@ const Index = () => {
           ref={bottomSheetRef}
           enableDynamicSizing={false}
           snapPoints={[20, 110, "45%", "85%"]}
-          index={bottomSheetIndex}
-          onChange={setBottomSheetIndex}
+          index={1}
+          onChange={(i) => {
+            if (i === 1) {
+              bottomAnimation.set(135);
+            } else if (i === 0) {
+              bottomAnimation.set(40);
+            }
+          }}
         >
           <BottomSheetScrollView
             style={{ flex: 1, padding: 10, paddingTop: 0 }}
           >
             <View className="w-full h-max p-2 z-50">
-              <SearchLocation selectLocation={selectLocation} />
+              <SearchLocation selectLocation={selectLocationHandler} />
             </View>
             {Object.keys(targets).length > 0 && (
               <View className="flex flex-row border border-slate-500/30 p-4 rounded-lg items-center justify-start gap-2 w-full">

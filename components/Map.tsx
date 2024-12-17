@@ -18,18 +18,19 @@ export interface MapComponentRef extends DOMImperativeFactory {
   getToUserLocation: (lngLat: LngLat) => void;
   setTargetMarkerPos: (lngLat: LngLat) => void;
   changeRoute: (routeObj: GeoJson, pointsObj: GeoJson) => void;
+  cleanUpMap: () => void;
   resetBearing: () => void;
 }
 
 export default forwardRef<MapComponentRef, object>(function Map(
   {
     center,
-    selectLocation,
+    selectLocationHandler,
     isLocationFinded,
     resetUserLocation,
   }: {
     center: LngLat;
-    selectLocation: (lngLat: LngLat) => void;
+    selectLocationHandler: (lngLat: LngLat) => void;
     resetUserLocation: () => void;
     isLocationFinded: boolean;
   },
@@ -116,10 +117,17 @@ export default forwardRef<MapComponentRef, object>(function Map(
       changeRoute: (routeObj: GeoJson, pointsObj: GeoJson) => {
         setRouteAndPointsInMap({ route: routeObj, point: pointsObj });
       },
-      setTargetMarkerPos:(lngLat:LngLat)=>{
-        if(targetMarker.current){
-          targetMarker.current.setLngLat(lngLat)
-        }else{
+      cleanUpMap: () => {
+        targetMarker.current?.remove();
+        mapRef.current?.removeLayer("points1");
+        mapRef.current?.removeLayer("route-line");
+        mapRef.current?.removeSource("route");
+        mapRef.current?.removeSource("points1");
+      },
+      setTargetMarkerPos: (lngLat: LngLat) => {
+        if (targetMarker.current) {
+          targetMarker.current.setLngLat(lngLat);
+        } else {
           targetMarker.current = new nmp_mapboxgl.Marker({
             color: "#AAAAAA",
             draggable: false,
@@ -143,10 +151,9 @@ export default forwardRef<MapComponentRef, object>(function Map(
       mapRef.current.on(
         "click",
         async ({ lngLat }: { lngLat: { lng: number; lat: number } }) => {
-          selectLocation([lngLat.lng, lngLat.lat]);
+          selectLocationHandler([lngLat.lng, lngLat.lat]);
         }
       );
-      
     });
   }, []);
   return (
