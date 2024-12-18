@@ -134,7 +134,7 @@ const Index = () => {
         >
           <CustomButton
             className={
-              directionType === "motorcycle" ? "bg-green-300" : "opacity-30"
+              directionType === "motorcycle" ? "!bg-green-300" : "opacity-30"
             }
             onPress={() => {
               if (directionType === "motorcycle") {
@@ -146,7 +146,7 @@ const Index = () => {
             icon={<Motor width={26} color={"#333333"} height={26} />}
           />
           <CustomButton
-            className={trafficZone ? "bg-green-300" : "opacity-30"}
+            className={trafficZone ? "!bg-green-300" : "opacity-30"}
             onPress={toggleTrafficZone}
             icon={<Traffic width={26} color={"#333333"} height={26} />}
           />

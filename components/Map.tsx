@@ -7,11 +7,7 @@ import "@/global.css";
 import "@neshan-maps-platform/mapbox-gl/dist/NeshanMapboxGl.css";
 
 const el = document.createElement("div");
-el.innerHTML = ` <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="#ffffff" viewBox="0 0 385.656 414.406">
-                <path
-                    d="M64,414L219,73c16.8-28.3,57.727-27.685,74,0,4.306,9.285,156,343,156,343s7.734,52.626-50,50c-5.452-1.59-122-53-122-53s-0.227-93.146,0-112c-3.18-23.624-38.157-25.983-43,0-0.3,13.489,0,112,0,112L116,466S58.929,474.563,64,414Z"
-                    transform="translate(-63.688 -52)" />
-            </svg>`;
+el.innerHTML = ` <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" fill="#ffffff" viewBox="0 0 385.656 414.406"><path d="M64,414L219,73c16.8-28.3,57.727-27.685,74,0,4.306,9.285,156,343,156,343s7.734,52.626-50,50c-5.452-1.59-122-53-122-53s-0.227-93.146,0-112c-3.18-23.624-38.157-25.983-43,0-0.3,13.489,0,112,0,112L116,466S58.929,474.563,64,414Z" transform="translate(-63.688 -52)" /></svg>`;
 el.className = "w-10 h-10 flex items-center justify-center";
 
 export interface MapComponentRef extends DOMImperativeFactory {
@@ -37,7 +33,7 @@ export default forwardRef<MapComponentRef, object>(function Map(
   ref: any
 ) {
   const [userLocation, setUserLocation] = useState<LngLat>(center);
-  const mapRef = useRef<any>(null);
+  const mapRef = useRef<nmp_mapboxgl.Map>(null);
   const userMarker = useRef<any>();
   const targetMarker = useRef<any>();
 
@@ -119,10 +115,15 @@ export default forwardRef<MapComponentRef, object>(function Map(
       },
       cleanUpMap: () => {
         targetMarker.current?.remove();
-        mapRef.current?.removeLayer("points1");
-        mapRef.current?.removeLayer("route-line");
-        mapRef.current?.removeSource("route");
-        mapRef.current?.removeSource("points1");
+        targetMarker.current = undefined;
+        if (mapRef.current?.getLayer("points1"))
+          mapRef.current?.removeLayer("points1");
+        if (mapRef.current?.getLayer("route-line"))
+          mapRef.current?.removeLayer("route-line");
+        if (mapRef.current?.getSource("route"))
+          mapRef.current?.removeSource("route");
+        if (mapRef.current?.getSource("points1"))
+          mapRef.current?.removeSource("points1");
       },
       setTargetMarkerPos: (lngLat: LngLat) => {
         if (targetMarker.current) {
