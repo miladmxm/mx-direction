@@ -1,4 +1,10 @@
-import { View, Text, ToastAndroid, Alert } from "react-native";
+import {
+  View,
+  Text,
+  ToastAndroid,
+  Alert,
+  TouchableOpacity,
+} from "react-native";
 import { useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "@/global.css";
@@ -9,6 +15,7 @@ import LocationSearch from "@/assets/icons/locationSearch.svg";
 import Location from "@/assets/icons/location.svg";
 import CompassIcon from "@/assets/icons/compass.svg";
 import Traffic from "@/assets/icons/traffic.svg";
+import Close from "@/assets/icons/close.svg";
 import Motor from "@/assets/icons/motor.svg";
 import { useLocation } from "@/hooks/useLocation";
 import SearchLocation from "@/components/SearchLocation";
@@ -28,6 +35,9 @@ const Index = () => {
     userLatitude,
     userLongitude,
     addTarget,
+    setTarget,
+    removeTarget,
+    clearTargets,
     userAddress,
     targets,
   } = useLocationStore();
@@ -38,6 +48,7 @@ const Index = () => {
     trafficZone,
     type: directionType,
   } = useDirectionParameters();
+  const [addTargetRouteMode, setAddTargetRouteMode] = useState<boolean>(false);
   const mapRef = useRef<MapComponentRef | null>(null);
   const bottomSheetRef = useRef<BottomSheet | null>(null);
   const abortControlRef = useRef<AbortController | null>(null);
@@ -86,17 +97,22 @@ const Index = () => {
 
         bottomSheetRef.current?.collapse();
         mapRef.current?.changeRoute(routeObj, pointsObj);
-        addTarget(lngLat[1], lngLat[0], data.routes[0].legs[0].summary);
+        if (addTargetRouteMode) {
+          addTarget(lngLat[1], lngLat[0], data.routes[0].legs[0].summary);
+          setAddTargetRouteMode(false)
+        } else {
+          setTarget(lngLat[1], lngLat[0], data.routes[0].legs[0].summary);
+        }
         abortControlRef.current = null;
       } else {
-        mapRef.current?.cleanUpMap()
-        ToastAndroid.show('مسیریابی انجام نشد !', ToastAndroid.SHORT);
+        mapRef.current?.cleanUpMap();
+        ToastAndroid.show("مسیریابی انجام نشد !", ToastAndroid.SHORT);
       }
     } catch (err) {
       console.log(err);
     }
   }
-
+  const hasTarget = Object.keys(targets).length > 0;
   const bottomAnimation = useSharedValue(135);
   const config = {
     duration: 1000,
@@ -178,7 +194,7 @@ const Index = () => {
             <View className="w-full h-max p-2 z-50">
               <SearchLocation selectLocation={selectLocationHandler} />
             </View>
-            {Object.keys(targets).length > 0 && (
+            {hasTarget && (
               <View className="flex flex-row border border-slate-500/30 p-4 rounded-lg items-center justify-start gap-2 w-full">
                 <LocationSearch width={25} height={25} color={"#000000"} />
                 <Text>از:</Text>
@@ -197,10 +213,34 @@ const Index = () => {
                     <Text className="flex-auto text-center">
                       {targetValue.address}
                     </Text>
+                    <TouchableOpacity onPress={() => removeTarget(targetKey)}>
+                      <Close width={25} height={25} color={"#af0f0f"} />
+                    </TouchableOpacity>
                   </View>
                 </View>
               );
             })}
+            {hasTarget && (
+              <TouchableOpacity
+                onPress={() =>
+                  setAddTargetRouteMode((pre) => {
+                    if (pre) clearTargets();
+                    return !pre;
+                  })
+                }
+                className="w-full h-16 bg-blue-400 rounded-xl center shadow-xl my-5"
+              >
+                {addTargetRouteMode ? (
+                  <Text className="text-center font-bold text-2xl text-white">
+                    مسیر جدید
+                  </Text>
+                ) : (
+                  <Text className="text-center font-bold text-2xl text-white">
+                    افزودن مسیر به مسیر فعلی
+                  </Text>
+                )}
+              </TouchableOpacity>
+            )}
           </BottomSheetScrollView>
         </BottomSheet>
       </GestureHandlerRootView>

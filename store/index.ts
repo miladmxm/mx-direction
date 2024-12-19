@@ -12,7 +12,13 @@ export const useLocationStore = create<UserLocation>((set) => ({
       userLatitude: latitude,
       userLongitude: longitude,
     }),
-  addTarget: (latitude, longitude, address) =>
+  removeTarget: (targetId) =>
+    set((state) => {
+      const { [targetId]: deletedItem, ...newTargets } = state.targets;
+      return { targets: newTargets };
+    }),
+  clearTargets: () => set({ targets: {} }),
+  setTarget: (latitude, longitude, address) =>
     set({
       targets: {
         [randomUUID()]: {
@@ -22,11 +28,23 @@ export const useLocationStore = create<UserLocation>((set) => ({
         },
       },
     }),
+  addTarget: (latitude, longitude, address) =>
+    set((state) => ({
+      targets: {
+        ...state.targets,
+        [randomUUID()]: {
+          address,
+          longitude,
+          latitude,
+        },
+      },
+    })),
 }));
 
 export const useDirectionParameters = create<DirectionParameters>((set) => ({
   trafficZone: false,
   type: "car",
   setType: (type) => set({ type }),
-  toggleTrafficZone: () => set((state)=>({ trafficZone:!state.trafficZone })),
+  toggleTrafficZone: () =>
+    set((state) => ({ trafficZone: !state.trafficZone })),
 }));

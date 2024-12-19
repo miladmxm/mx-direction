@@ -11,11 +11,14 @@ declare interface UserLocation {
     [key: string]: { latitude: number; longitude: number; address: string };
   };
   addTarget: (latitude: number, longitude: number, address: string) => void;
+  setTarget: (latitude: number, longitude: number, address: string) => void;
   setUserLocation: (
     latitude: number,
     longitude: number,
     address?: string
   ) => void;
+  removeTarget:(targetId:string)=>void
+  clearTargets:()=>void
 }
 
 declare interface AddressResult {
