@@ -4,8 +4,9 @@ import {
   ToastAndroid,
   Alert,
   TouchableOpacity,
+  Switch,
 } from "react-native";
-import { useRef, useState } from "react";
+import { Fragment, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "@/global.css";
 import Map, { type MapComponentRef } from "@/components/Map";
@@ -99,7 +100,7 @@ const Index = () => {
         mapRef.current?.changeRoute(routeObj, pointsObj);
         if (addTargetRouteMode) {
           addTarget(lngLat[1], lngLat[0], data.routes[0].legs[0].summary);
-          setAddTargetRouteMode(false)
+          setAddTargetRouteMode(false);
         } else {
           setTarget(lngLat[1], lngLat[0], data.routes[0].legs[0].summary);
         }
@@ -221,26 +222,48 @@ const Index = () => {
               );
             })}
             {hasTarget && (
-              <TouchableOpacity
-                onPress={() =>
-                  setAddTargetRouteMode((pre) => {
-                    if (pre) clearTargets();
-                    return !pre;
-                  })
-                }
-                className="w-full h-16 bg-blue-400 rounded-xl center shadow-xl my-5"
-              >
-                {addTargetRouteMode ? (
+              <Fragment>
+                <TouchableOpacity
+                  onPress={() =>
+                    setAddTargetRouteMode((pre) => {
+                      if (pre) clearTargets();
+                      return !pre;
+                    })
+                  }
+                  className="w-full h-16 bg-green-400 rounded-xl center shadow-xl my-5"
+                >
                   <Text className="text-center font-bold text-2xl text-white">
-                    مسیر جدید
+                    مسیریابی
                   </Text>
-                ) : (
-                  <Text className="text-center font-bold text-2xl text-white">
-                    افزودن مسیر به مسیر فعلی
-                  </Text>
-                )}
-              </TouchableOpacity>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() =>
+                    setAddTargetRouteMode((pre) => {
+                      if (pre) clearTargets();
+                      return !pre;
+                    })
+                  }
+                  className="w-full h-16 bg-blue-400 rounded-xl center shadow-xl my-5"
+                >
+                  {addTargetRouteMode ? (
+                    <Text className="text-center font-bold text-2xl text-white">
+                      مسیر جدید
+                    </Text>
+                  ) : (
+                    <Text className="text-center font-bold text-2xl text-white">
+                      افزودن مسیر به مسیر فعلی
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </Fragment>
             )}
+            {/* <Switch
+              trackColor={{ false: "#767577", true: "#81b0ff" }}
+              thumbColor={isEnabled ? "#f5dd4b" : "#f4f3f4"}
+              ios_backgroundColor="#3e3e3e"
+              onValueChange={toggleSwitch}
+              value={isEnabled}
+            /> */}
           </BottomSheetScrollView>
         </BottomSheet>
       </GestureHandlerRootView>

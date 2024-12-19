@@ -145,16 +145,34 @@ export default forwardRef<MapComponentRef, object>(function Map(
     }),
     [mapRef.current]
   );
+
+  const timerForSelectTarget = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
   useEffect(() => {
     mapRef.current.on("load", () => {
       resetUserLocation();
 
       mapRef.current.on(
-        "click",
+        "touchstart",
         async ({ lngLat }: { lngLat: { lng: number; lat: number } }) => {
-          selectLocationHandler([lngLat.lng, lngLat.lat]);
+          cancleSelection();
+          timerForSelectTarget.current = setTimeout(() => {
+            selectLocationHandler([lngLat.lng, lngLat.lat]);
+          }, 1000);
         }
       );
+      const cancleSelection = () => {
+        if (timerForSelectTarget.current) {
+          clearTimeout(timerForSelectTarget.current);
+        }
+      };
+      mapRef.current.on("touchend", cancleSelection);
+      mapRef.current.on("touchmove", cancleSelection);
+      mapRef.current.on("touchcancel", cancleSelection);
+      mapRef.current.on("zoom", cancleSelection);
+      mapRef.current.on("move", cancleSelection);
+
     });
   }, []);
   return (
