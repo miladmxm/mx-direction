@@ -3,22 +3,49 @@ declare module "*.svg" {
   export default content;
 }
 
+type AddressObject = {
+  city: string;
+  county: string;
+  district: string;
+  formatted_address: string;
+  in_odd_even_zone: boolean;
+  in_traffic_zone: boolean;
+  neighbourhood: string;
+  place: string | null;
+  route_name: string;
+  route_type: string;
+  state: string;
+  status: string;
+};
+
 declare interface UserLocation {
   userLatitude: number | null;
   userLongitude: number | null;
-  userAddress?: string | null;
+  userAddress: AddressObject | null;
   targets: {
-    [key: string]: { latitude: number; longitude: number; address: string };
+    [key: string]: {
+      latitude: number;
+      longitude: number;
+      address: AddressObject | null;
+    };
   };
-  addTarget: (latitude: number, longitude: number, address: string) => void;
-  setTarget: (latitude: number, longitude: number, address: string) => void;
+  addTarget: (
+    latitude: number,
+    longitude: number,
+    address: AddressObject | null
+  ) => void;
+  setTarget: (
+    latitude: number,
+    longitude: number,
+    address: AddressObject | null
+  ) => void;
   setUserLocation: (
     latitude: number,
     longitude: number,
-    address?: string
+    address: AddressObject | null
   ) => void;
-  removeTarget:(targetId:string)=>void
-  clearTargets:()=>void
+  removeTarget: (targetId: string) => void;
+  clearTargets: () => void;
 }
 
 declare interface AddressResult {

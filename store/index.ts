@@ -8,7 +8,7 @@ export const useLocationStore = create<UserLocation>((set) => ({
   targets: {},
   setUserLocation: (latitude, longitude, address) =>
     set({
-      userAddress: address || null,
+      userAddress: address,
       userLatitude: latitude,
       userLongitude: longitude,
     }),
