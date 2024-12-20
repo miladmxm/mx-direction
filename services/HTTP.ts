@@ -24,16 +24,20 @@ export const getDirectionsPath = (
     destination,
     origin,
     type,
+    waypoints,
     avoidTrafficZone,
+    avoidOddEvenZone,
   }: {
     origin: string;
     destination: string;
+    waypoints: string;
     type: DirectionType;
     avoidTrafficZone: boolean;
+    avoidOddEvenZone: boolean;
   },
   signal: AbortSignal
 ) =>
   axios.get("v4/direction", {
-    params: { origin, destination, type, avoidTrafficZone },
+    params: { origin, destination, type, avoidTrafficZone, avoidOddEvenZone ,waypoints},
     signal: signal,
   });

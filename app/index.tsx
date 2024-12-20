@@ -17,6 +17,7 @@ import CompassIcon from "@/assets/icons/compass.svg";
 import Traffic from "@/assets/icons/traffic.svg";
 import Close from "@/assets/icons/close.svg";
 import Motor from "@/assets/icons/motor.svg";
+import Car from "@/assets/icons/car.svg";
 import { useLocation } from "@/hooks/useLocation";
 import SearchLocation from "@/components/SearchLocation";
 import routeAndPointGEOjson from "@/utils/createGeoJsonRoute";
@@ -46,6 +47,8 @@ const Index = () => {
     setType,
     toggleTrafficZone,
     trafficZone,
+    oddEvenZone,
+    toggleOddEvenZone,
     type: directionType,
   } = useDirectionParameters();
   const [addTargetRouteMode, setAddTargetRouteMode] = useState<boolean>(false);
@@ -82,13 +85,13 @@ const Index = () => {
       abortControlRef.current.abort();
     }
     try {
-      bottomSheetRef.current?.expand();
       let targetAddress = null;
       const { data: resultData } = await getAddressByLocation(
         lngLat[1],
         lngLat[0]
       );
       if (resultData) {
+        bottomSheetRef.current?.expand();
         targetAddress = resultData;
       }
 
@@ -107,23 +110,27 @@ const Index = () => {
     abortControlRef.current = new AbortController();
     try {
       const allTargets = Object.values(targets);
-      const lastTarget = allTargets[allTargets.length - 1];
-      const { data }: { data: RoutingResponse } = await getDirectionsPath(
-        {
-          origin: `${userLatitude},${userLongitude}`,
-          type: directionType,
-          avoidTrafficZone: trafficZone,
-          destination: `${lastTarget.latitude},${lastTarget.longitude}`,
-        },
-        abortControlRef.current.signal
-      );
-      if (data.routes) {
-        const { pointsObj, routeObj } = routeAndPointGEOjson(data);
-        mapRef.current?.changeRoute(routeObj, pointsObj);
-      } else {
-        mapRef.current?.cleanUpMap();
-        ToastAndroid.show("مسیریابی انجام نشد !", ToastAndroid.SHORT);
-      }
+      const lastTarget = allTargets.map(item=>[item.latitude,item.longitude]).pop()
+      console.log(allTargets)
+      // const lastTarget = allTargets[allTargets.length - 1];
+      // const { data }: { data: RoutingResponse } = await getDirectionsPath(
+      //   {
+      //     origin: `${userLatitude},${userLongitude}`,
+      //     type: directionType,
+      //     avoidTrafficZone: trafficZone,
+      //     avoidOddEvenZone: oddEvenZone,
+      //     waypoints:"",
+      //     destination: `${lastTarget.latitude},${lastTarget.longitude}`,
+      //   },
+      //   abortControlRef.current.signal
+      // );
+      // if (data.routes) {
+      //   const { pointsObj, routeObj } = routeAndPointGEOjson(data);
+      //   mapRef.current?.changeRoute(routeObj, pointsObj);
+      // } else {
+      //   mapRef.current?.cleanUpMap();
+      //   ToastAndroid.show("مسیریابی انجام نشد !", ToastAndroid.SHORT);
+      // }
     } catch (err) {
       console.log(err);
     } finally {
@@ -167,20 +174,6 @@ const Index = () => {
           style={bottomAnimationForBtnWrapper}
           className={`absolute right-5 flex flex-col gap-5`}
         >
-          <CustomButton
-            className={
-              directionType === "motorcycle" ? "!bg-green-300" : "opacity-30"
-            }
-            onPress={() => {
-              if (directionType === "motorcycle") {
-                setType("car");
-              } else {
-                setType("motorcycle");
-              }
-            }}
-            icon={<Motor width={26} color={"#333333"} height={26} />}
-          />
-
           <CustomButton
             onPress={() => mapRef.current?.resetBearing()}
             icon={<CompassIcon width={26} color={"#333333"} height={26} />}
@@ -254,11 +247,29 @@ const Index = () => {
                   <Text>عبور از طرح زوج و فرد</Text>
                   <Switch
                     trackColor={{ false: "#767577", true: "#55aaff" }}
-                    thumbColor={trafficZone ? "#30ffa0" : "#f4f3f4"}
+                    thumbColor={oddEvenZone ? "#30ffa0" : "#f4f3f4"}
                     ios_backgroundColor="#3e3e3e"
-                    onValueChange={toggleTrafficZone}
-                    value={trafficZone}
+                    onValueChange={toggleOddEvenZone}
+                    value={oddEvenZone}
                   />
+                </View>
+                <View className="flex items-center flex-row gap-5 px-5 relative mt-5">
+                  <TouchableOpacity
+                    onPress={() => {
+                      setType("motorcycle");
+                    }}
+                    className={`flex-1 ${directionType === "motorcycle" ? "bg-green-300" : "opacity-30"} border border-gray-200/30 rounded-xl center py-2`}
+                  >
+                    <Motor width={25} color={"#333333"} height={25} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setType("car");
+                    }}
+                    className={`flex-1 ${directionType === "car" ? "bg-green-300" : "opacity-30"} border border-gray-200/30 rounded-xl center py-2`}
+                  >
+                    <Car width={25} color={"#333333"} height={25} />
+                  </TouchableOpacity>
                 </View>
                 <TouchableOpacity
                   onPress={() => directionHandler()}
