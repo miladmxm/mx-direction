@@ -18,21 +18,21 @@ export const useLocationStore = create<UserLocation>((set) => ({
       return { targets: newTargets };
     }),
   clearTargets: () => set({ targets: {} }),
-  setTarget: (latitude, longitude, address) =>
+  setTarget: (latitude, longitude, address, id = randomUUID()) =>
     set({
       targets: {
-        [randomUUID()]: {
+        [id]: {
           address,
           longitude,
           latitude,
         },
       },
     }),
-  addTarget: (latitude, longitude, address) =>
+  addTarget: (latitude, longitude, address, id = randomUUID()) =>
     set((state) => ({
       targets: {
         ...state.targets,
-        [randomUUID()]: {
+        [id]: {
           address,
           longitude,
           latitude,

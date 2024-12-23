@@ -11,8 +11,10 @@ el.innerHTML = ` <svg width="20" height="20" xmlns="http://www.w3.org/2000/svg" 
 el.className = "w-10 h-10 flex items-center justify-center";
 
 export interface MapComponentRef extends DOMImperativeFactory {
-  getToUserLocation: (lngLat: LngLat) => void;
-  setTargetMarkerPos: (lngLat: LngLat) => void;
+  goToUserLocation: (lngLat: LngLat) => void;
+  setTargetMarker: (lngLat: LngLat, id: string) => void;
+  addTargetMarker: (lngLat: LngLat, id: string) => void;
+  removeMarkerTarget:(id:string)=>void;
   changeRoute: (routeObj: GeoJson, pointsObj: GeoJson) => void;
   cleanUpMap: () => void;
   resetBearing: () => void;
@@ -29,13 +31,14 @@ export default forwardRef<MapComponentRef, object>(function Map(
     selectLocationHandler: (lngLat: LngLat) => void;
     resetUserLocation: () => void;
     isLocationFinded: boolean;
+    targets: object;
   },
   ref: any
 ) {
   const [userLocation, setUserLocation] = useState<LngLat>(center);
   const mapRef = useRef<nmp_mapboxgl.Map>(null);
   const userMarker = useRef<any>();
-  const targetMarker = useRef<any>();
+  const targetMarkers = useRef<{ [key: string]: any }>({});
 
   const setRouteAndPointsInMap = ({
     route,
@@ -94,7 +97,7 @@ export default forwardRef<MapComponentRef, object>(function Map(
   useDOMImperativeHandle(
     ref,
     () => ({
-      getToUserLocation: (lngLat: LngLat) => {
+      goToUserLocation: (lngLat: LngLat) => {
         setUserLocation(lngLat);
         mapRef.current?.flyTo({
           center: lngLat,
@@ -114,8 +117,9 @@ export default forwardRef<MapComponentRef, object>(function Map(
         setRouteAndPointsInMap({ route: routeObj, point: pointsObj });
       },
       cleanUpMap: () => {
-        targetMarker.current?.remove();
-        targetMarker.current = undefined;
+        (Object.values(targetMarkers.current) || []).forEach((targetMarker) => {
+          targetMarker.remove();
+        });
         if (mapRef.current?.getLayer("points1"))
           mapRef.current?.removeLayer("points1");
         if (mapRef.current?.getLayer("route-line"))
@@ -125,16 +129,31 @@ export default forwardRef<MapComponentRef, object>(function Map(
         if (mapRef.current?.getSource("points1"))
           mapRef.current?.removeSource("points1");
       },
-      setTargetMarkerPos: (lngLat: LngLat) => {
-        if (targetMarker.current) {
-          targetMarker.current.setLngLat(lngLat);
+      setTargetMarker: (lngLat: LngLat, id: string) => {
+        if (targetMarkers.current[id]) {
+          targetMarkers.current[id]?.setLngLat(lngLat);
         } else {
-          targetMarker.current = new nmp_mapboxgl.Marker({
+          targetMarkers.current[id] = new nmp_mapboxgl.Marker({
             color: "#AAAAAA",
             draggable: false,
           })
             .setLngLat(lngLat)
             .addTo(mapRef.current);
+        }
+      },
+      addTargetMarker: (lngLat: LngLat, id: string) => {
+        targetMarkers.current[id] = new nmp_mapboxgl.Marker({
+          color: "#AAAAAA",
+          draggable: false,
+        })
+          .setLngLat(lngLat)
+          .addTo(mapRef.current);
+      },
+      removeMarkerTarget:(id:string)=>{
+        if (targetMarkers.current[id]) {
+          targetMarkers.current[id]?.remove();
+          delete targetMarkers.current[id]
+          
         }
       },
       resetBearing: () => {
@@ -145,7 +164,6 @@ export default forwardRef<MapComponentRef, object>(function Map(
     }),
     [mapRef.current]
   );
-
   const timerForSelectTarget = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -172,7 +190,6 @@ export default forwardRef<MapComponentRef, object>(function Map(
       mapRef.current.on("touchcancel", cancleSelection);
       mapRef.current.on("zoom", cancleSelection);
       mapRef.current.on("move", cancleSelection);
-
     });
   }, []);
   return (

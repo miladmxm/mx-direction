@@ -32,12 +32,14 @@ declare interface UserLocation {
   addTarget: (
     latitude: number,
     longitude: number,
-    address: AddressObject | null
+    address: AddressObject | null,
+    id?: string
   ) => void;
   setTarget: (
     latitude: number,
     longitude: number,
-    address: AddressObject | null
+    address: AddressObject | null,
+    id?: string
   ) => void;
   setUserLocation: (
     latitude: number,

@@ -29,6 +29,7 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
+import { randomUUID } from "expo-crypto";
 
 const Index = () => {
   const {
@@ -55,14 +56,22 @@ const Index = () => {
   const mapRef = useRef<MapComponentRef | null>(null);
   const bottomSheetRef = useRef<BottomSheet | null>(null);
   const abortControlRef = useRef<AbortController | null>(null);
+  const abortUserLocationRef = useRef<AbortController | null>(null);
 
   async function resetUserLocation() {
     try {
       const updatedLocation = await getAccessLocation();
       if (updatedLocation && updatedLocation.coords) {
+        mapRef.current?.goToUserLocation([
+          updatedLocation?.coords.longitude,
+          updatedLocation?.coords.latitude,
+        ]);
+        if (abortUserLocationRef.current) abortUserLocationRef.current.abort();
+        abortUserLocationRef.current = new AbortController();
         const userAddress = await getAddressByLocation(
           updatedLocation.coords.latitude,
-          updatedLocation.coords.longitude
+          updatedLocation.coords.longitude,
+          abortUserLocationRef.current.signal
         );
 
         setUserLocation(
@@ -70,17 +79,12 @@ const Index = () => {
           updatedLocation.coords.longitude,
           userAddress?.data || null
         );
-        mapRef.current?.getToUserLocation([
-          updatedLocation?.coords.longitude,
-          updatedLocation?.coords.latitude,
-        ]);
       }
     } catch (err) {
       console.log(err);
     }
   }
   async function selectLocationHandler(lngLat: LngLat) {
-    mapRef.current?.setTargetMarkerPos(lngLat);
     if (abortControlRef.current) {
       abortControlRef.current.abort();
     }
@@ -91,15 +95,27 @@ const Index = () => {
         lngLat[0]
       );
       if (resultData) {
-        bottomSheetRef.current?.expand();
-        targetAddress = resultData;
-      }
-
-      if (addTargetRouteMode) {
-        addTarget(lngLat[1], lngLat[0], targetAddress);
-        setAddTargetRouteMode(false);
-      } else {
-        setTarget(lngLat[1], lngLat[0], targetAddress);
+        if (
+          ((resultData.in_traffic_zone && trafficZone) ||
+            (resultData.in_odd_even_zone && oddEvenZone)) &&
+          directionType === "car"
+        ) {
+          ToastAndroid.show("مقصد شما درون طرح میباشد !", ToastAndroid.SHORT);
+          return;
+        } else {
+          bottomSheetRef.current?.expand();
+          targetAddress = resultData;
+          const id = randomUUID();
+          if (addTargetRouteMode) {
+            mapRef.current?.addTargetMarker(lngLat, id);
+            addTarget(lngLat[1], lngLat[0], targetAddress, id);
+            setAddTargetRouteMode(false);
+          } else {
+            mapRef.current?.cleanUpMap();
+            mapRef.current?.setTargetMarker(lngLat, id);
+            setTarget(lngLat[1], lngLat[0], targetAddress, id);
+          }
+        }
       }
     } catch (err) {
       console.log(err);
@@ -109,28 +125,29 @@ const Index = () => {
   async function directionHandler() {
     abortControlRef.current = new AbortController();
     try {
-      const allTargets = Object.values(targets);
-      const lastTarget = allTargets.map(item=>[item.latitude,item.longitude]).pop()
-      console.log(allTargets)
-      // const lastTarget = allTargets[allTargets.length - 1];
-      // const { data }: { data: RoutingResponse } = await getDirectionsPath(
-      //   {
-      //     origin: `${userLatitude},${userLongitude}`,
-      //     type: directionType,
-      //     avoidTrafficZone: trafficZone,
-      //     avoidOddEvenZone: oddEvenZone,
-      //     waypoints:"",
-      //     destination: `${lastTarget.latitude},${lastTarget.longitude}`,
-      //   },
-      //   abortControlRef.current.signal
-      // );
-      // if (data.routes) {
-      //   const { pointsObj, routeObj } = routeAndPointGEOjson(data);
-      //   mapRef.current?.changeRoute(routeObj, pointsObj);
-      // } else {
-      //   mapRef.current?.cleanUpMap();
-      //   ToastAndroid.show("مسیریابی انجام نشد !", ToastAndroid.SHORT);
-      // }
+      const allTargets = Object.values({ ...targets }).map((item) => [
+        item.latitude,
+        item.longitude,
+      ]);
+      const lastTarget = allTargets.pop() || [];
+      const { data }: { data: RoutingResponse } = await getDirectionsPath(
+        {
+          origin: `${userLatitude},${userLongitude}`,
+          type: directionType,
+          avoidTrafficZone: trafficZone,
+          avoidOddEvenZone: oddEvenZone,
+          waypoints: allTargets.join("|") || null,
+          destination: lastTarget.join(),
+        },
+        abortControlRef.current.signal
+      );
+      if (data.routes) {
+        const { pointsObj, routeObj } = routeAndPointGEOjson(data);
+        mapRef.current?.changeRoute(routeObj, pointsObj);
+      } else {
+        mapRef.current?.cleanUpMap();
+        ToastAndroid.show("مسیریابی انجام نشد !", ToastAndroid.SHORT);
+      }
     } catch (err) {
       console.log(err);
     } finally {
@@ -155,8 +172,6 @@ const Index = () => {
       className="flex-1 w-full relative"
     >
       <GestureHandlerRootView>
-        {/* <View className="w-full absolute top-0 left-0 h-max p-2 z-50">
-        </View> */}
         <View className="bg-slate-700 flex-1">
           <Map
             selectLocationHandler={selectLocationHandler}
@@ -167,6 +182,7 @@ const Index = () => {
             ]}
             isLocationFinded={location?.coords.longitude ? true : false}
             ref={mapRef}
+            targets={targets}
           />
         </View>
 
@@ -214,7 +230,6 @@ const Index = () => {
 
             {Object.keys(targets).map((targetKey) => {
               const targetValue = targets[targetKey];
-              console.log(targetValue);
               return (
                 <View key={targetKey}>
                   <View className="h-8 w-1 mx-auto border-r border-dashed border-slate-500/30"></View>
@@ -224,7 +239,12 @@ const Index = () => {
                     <Text className="flex-auto text-center">
                       {targetValue.address?.formatted_address || "آدرس نامشخص"}
                     </Text>
-                    <TouchableOpacity onPress={() => removeTarget(targetKey)}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        mapRef.current?.removeMarkerTarget(targetKey)
+                        removeTarget(targetKey);
+                      }}
+                    >
                       <Close width={25} height={25} color={"#af0f0f"} />
                     </TouchableOpacity>
                   </View>
