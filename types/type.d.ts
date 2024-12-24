@@ -17,17 +17,17 @@ type AddressObject = {
   state: string;
   status: string;
 };
-
+type TargetType = {
+  latitude: number;
+  longitude: number;
+  address: AddressObject | null;
+};
 declare interface UserLocation {
   userLatitude: number | null;
   userLongitude: number | null;
   userAddress: AddressObject | null;
   targets: {
-    [key: string]: {
-      latitude: number;
-      longitude: number;
-      address: AddressObject | null;
-    };
+    [key: string]: TargetType;
   };
   addTarget: (
     latitude: number,

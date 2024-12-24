@@ -70,8 +70,8 @@ export default forwardRef<MapComponentRef, object>(function Map(
           "line-cap": "round",
         },
         paint: {
-          "line-color": "#250ECD",
-          "line-opacity": 0.5,
+          "line-color": "#44aaff",
+          "line-opacity": 0.7,
           "line-width": 9,
         },
       });
