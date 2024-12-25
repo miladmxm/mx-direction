@@ -13,8 +13,10 @@ import { searchLocation } from "@/services/HTTP";
 
 const SearchLocation = ({
   selectLocation,
+  expandBottomSheet,
 }: {
   selectLocation: (lngLat: LngLat) => void;
+  expandBottomSheet: () => void;
 }) => {
   const { userLatitude, userLongitude } = useLocationStore();
   const [textInput, setTextInput] = useState<string>("");
@@ -69,6 +71,7 @@ const SearchLocation = ({
         </TouchableOpacity>
         <View className="flex-auto flex flex-row items-center justify-center relative">
           <TextInput
+            onFocus={expandBottomSheet}
             className={`rounded-full flex-auto`}
             placeholder="کجا میروید؟"
             value={textInput}

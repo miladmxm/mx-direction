@@ -4,29 +4,29 @@ import {
   ToastAndroid,
   TouchableOpacity,
   Switch,
-  FlatList,
-  ScrollView,
 } from "react-native";
 import { Fragment, useRef, useState } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import "@/global.css";
 import Map, { type MapComponentRef } from "@/components/Map";
 import { useDirectionParameters, useLocationStore } from "@/store";
-import { getAddressByLocation, getDirectionsPath } from "@/services/HTTP";
+import {
+  getAddressByLocation,
+  getDirectionsPath,
+  getTSP,
+} from "@/services/HTTP";
 import LocationSearch from "@/assets/icons/locationSearch.svg";
+import Sort from "@/assets/icons/sort.svg";
 import Location from "@/assets/icons/location.svg";
 import CompassIcon from "@/assets/icons/compass.svg";
-import Traffic from "@/assets/icons/traffic.svg";
+import Drag from "@/assets/icons/drag.svg";
 import Close from "@/assets/icons/close.svg";
 import Motor from "@/assets/icons/motor.svg";
 import Car from "@/assets/icons/car.svg";
 import { useLocation } from "@/hooks/useLocation";
 import SearchLocation from "@/components/SearchLocation";
 import routeAndPointGEOjson from "@/utils/createGeoJsonRoute";
-import BottomSheet, {
-  BottomSheetScrollView,
-  BottomSheetView,
-} from "@gorhom/bottom-sheet";
+import BottomSheet, { BottomSheetView } from "@gorhom/bottom-sheet";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import CustomButton from "@/components/CustomButton";
 import DraggableFlatList, {
@@ -37,7 +37,6 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { randomUUID } from "expo-crypto";
 
 const Index = () => {
   const {
@@ -49,7 +48,7 @@ const Index = () => {
     removeTarget,
     clearTargets,
     userAddress,
-    targets
+    targets,
   } = useLocationStore();
   const { location, getAccessLocation } = useLocation();
   const {
@@ -65,6 +64,7 @@ const Index = () => {
   const bottomSheetRef = useRef<BottomSheet | null>(null);
   const abortControlRef = useRef<AbortController | null>(null);
   const abortUserLocationRef = useRef<AbortController | null>(null);
+  const abortSortRef = useRef<AbortController | null>(null);
   const [sortTargetsState, setSortTargetsState] = useState<string[]>([]);
   async function resetUserLocation() {
     try {
@@ -113,7 +113,7 @@ const Index = () => {
         } else {
           bottomSheetRef.current?.expand();
           targetAddress = resultData;
-          const id = randomUUID();
+          const id = lngLat.join();
           if (addTargetRouteMode) {
             mapRef.current?.addTargetMarker(lngLat, id);
             addTarget(lngLat[1], lngLat[0], targetAddress, id);
@@ -135,19 +135,22 @@ const Index = () => {
   async function directionHandler() {
     abortControlRef.current = new AbortController();
     try {
-      const allTargets = Object.values({ ...targets }).map((item) => [
-        item.latitude,
-        item.longitude,
-      ]);
-      const lastTarget = allTargets.pop() || [];
+      const targetsItems = [];
+      const allTargets = { ...targets };
+      for (let i = 0; i < sortTargetsState.length; i++) {
+        const id = sortTargetsState[i];
+        targetsItems.push([allTargets[id].latitude, allTargets[id].longitude]);
+      }
+      const target = targetsItems.pop() || [];
+
       const { data }: { data: RoutingResponse } = await getDirectionsPath(
         {
           origin: `${userLatitude},${userLongitude}`,
           type: directionType,
           avoidTrafficZone: trafficZone,
           avoidOddEvenZone: oddEvenZone,
-          waypoints: allTargets.join("|") || null,
-          destination: lastTarget.join(),
+          waypoints: targetsItems.join("|") || null,
+          destination: target.join(),
         },
         abortControlRef.current.signal
       );
@@ -176,13 +179,46 @@ const Index = () => {
       bottom: withSpring(bottomAnimation.value, config),
     };
   });
-
-  const renderItem = ({ item, drag, isActive }) => {
+  const sortTSP = async () => {
+    try {
+      if (abortSortRef.current) abortSortRef.current.abort();
+      const targetsItems = [];
+      const allTargets = { ...targets };
+      for (let i = 0; i < sortTargetsState.length; i++) {
+        const id = sortTargetsState[i];
+        targetsItems.push([allTargets[id].latitude, allTargets[id].longitude]);
+      }
+      abortSortRef.current = new AbortController();
+      console.log(`${userLatitude},${userLongitude}|` + targetsItems.join("|"));
+      const sorted = await getTSP(
+        {
+          waypoints:
+            `${userLatitude},${userLongitude}|` + targetsItems.join("|"),
+        },
+        abortSortRef.current.signal
+      );
+      console.log(sorted.data.points);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+  const renderItem = ({
+    item,
+    drag,
+    isActive,
+  }: {
+    item: string;
+    drag: () => void;
+    isActive: boolean;
+  }) => {
     return (
       <ScaleDecorator>
         <TouchableOpacity onLongPress={drag} disabled={isActive}>
-          <View className="h-8 w-1 mx-auto border-r border-dashed border-slate-500/30"></View>
-          <View className="flex flex-row border border-slate-500/30 p-4 rounded-lg items-center justify-start gap-2 w-full">
+          <View
+            className={`h-8 w-1 mx-auto border-r border-dashed ${isActive ? "!border-transparent" : "border-slate-500/30"}`}
+          />
+          <View className="flex flex-row border border-slate-500/30 p-4 rounded-lg items-center justify-start gap-1 w-full">
+            <Drag width={12} height={12} color={"#aaaaaa"} />
             <Location width={25} height={25} color={"#000000"} />
             <Text>به:</Text>
             <Text className="flex-auto text-center">
@@ -192,7 +228,9 @@ const Index = () => {
               onPress={() => {
                 mapRef.current?.removeMarkerTarget(item);
                 removeTarget(item);
-                setSortTargetsState(prev=>[...prev].filter(id=>id !== item))
+                setSortTargetsState((prev) =>
+                  [...prev].filter((id) => id !== item)
+                );
               }}
             >
               <Close width={25} height={25} color={"#af0f0f"} />
@@ -251,10 +289,14 @@ const Index = () => {
         >
           <BottomSheetView style={{ flex: 1 }}>
             <DraggableFlatList
+              contentContainerClassName="px-3"
               ListHeaderComponent={
                 <Fragment>
                   <View className="w-full h-max p-2 z-50">
-                    <SearchLocation selectLocation={selectLocationHandler} />
+                    <SearchLocation
+                      expandBottomSheet={() => bottomSheetRef.current?.expand()}
+                      selectLocation={selectLocationHandler}
+                    />
                   </View>
                   {hasTarget && (
                     <View className="flex flex-row border border-slate-500/30 p-4 rounded-lg items-center justify-start gap-2 w-full">
@@ -275,6 +317,13 @@ const Index = () => {
                 <Fragment>
                   {hasTarget && (
                     <Fragment>
+                      <TouchableOpacity
+                        onPress={sortTSP}
+                        className="flex  p-4 flex-row items-center justify-center gap-3 rounded-lg border mt-5"
+                      >
+                        <Sort width={25} height={25} color="#000000" />
+                        <Text>مرتب سازی به ترتیب فاصله </Text>
+                      </TouchableOpacity>
                       <View className="flex flex-row justify-between items-center h-20 border-y border-gray-200 mt-5">
                         <Text>عبور از طرح ترافیک</Text>
                         <Switch
@@ -348,7 +397,6 @@ const Index = () => {
               data={sortTargetsState}
               onDragEnd={({ data }) => {
                 setSortTargetsState(data);
-                // sortTarget(data);
               }}
               renderItem={renderItem}
             />

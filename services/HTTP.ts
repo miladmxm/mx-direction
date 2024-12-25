@@ -10,7 +10,7 @@ axios.defaults.headers.common["Api-Key"] =
 export const getAddressByLocation = (
   lat: string | number,
   lon: string | number,
-  signal: AbortSignal
+  signal?: AbortSignal
 ) => axios.get(`v5/reverse?lat=${lat}&lng=${lon}`, { signal });
 
 export const searchLocation = (
@@ -48,4 +48,18 @@ export const getDirectionsPath = (
       waypoints,
     },
     signal: signal,
+  });
+
+export const getTSP = (
+  { waypoints }: { waypoints: string },
+  signal: AbortSignal
+) =>
+  axios.get(`v3/trip`, {
+    params: {
+      waypoints,
+      roundTrip: false,
+      sourcelsAnyPoint: false,
+      lastlsAnyPoint: false,
+    },
+    signal,
   });
