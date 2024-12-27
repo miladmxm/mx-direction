@@ -66,8 +66,17 @@ const Index = () => {
   const abortUserLocationRef = useRef<AbortController | null>(null);
   const abortSortRef = useRef<AbortController | null>(null);
   const [sortTargetsState, setSortTargetsState] = useState<string[]>([]);
+  const [directionDitails, setDirectionDitails] = useState<
+    { distance: DistanceDuration; duration: DistanceDuration }[]
+  >([]);
   async function resetUserLocation() {
     try {
+      if (location) {
+        mapRef.current?.goToUserLocation([
+          location?.coords.longitude,
+          location?.coords.latitude,
+        ]);
+      }
       const updatedLocation = await getAccessLocation();
       if (updatedLocation && updatedLocation.coords) {
         mapRef.current?.goToUserLocation([
@@ -92,7 +101,10 @@ const Index = () => {
       console.log(err);
     }
   }
-  async function selectLocationHandler(lngLat: LngLat) {
+  async function selectLocationHandler(
+    lngLat: LngLat,
+    addMode = addTargetRouteMode
+  ) {
     if (abortControlRef.current) {
       abortControlRef.current.abort();
     }
@@ -111,17 +123,18 @@ const Index = () => {
           ToastAndroid.show("مقصد شما درون طرح میباشد !", ToastAndroid.SHORT);
           return;
         } else {
+          setDirectionDitails([]);
           bottomSheetRef.current?.expand();
           targetAddress = resultData;
           const id = lngLat.join();
-          if (addTargetRouteMode) {
+          if (addMode) {
             mapRef.current?.addTargetMarker(lngLat, id);
             addTarget(lngLat[1], lngLat[0], targetAddress, id);
             setSortTargetsState((prev) => [...prev, id]);
             setAddTargetRouteMode(false);
           } else {
             mapRef.current?.cleanUpMap();
-            setSortTargetsState((prev) => [id]);
+            setSortTargetsState(() => [id]);
             mapRef.current?.setTargetMarker(lngLat, id);
             setTarget(lngLat[1], lngLat[0], targetAddress, id);
           }
@@ -155,6 +168,12 @@ const Index = () => {
         abortControlRef.current.signal
       );
       if (data.routes) {
+        const ditails = [];
+        for (let i = 0; i < data.routes[0].legs.length; i++) {
+          const leg = data.routes[0].legs[i];
+          ditails.push({ duration: leg.duration, distance: leg.distance });
+        }
+        setDirectionDitails(ditails);
         const { pointsObj, routeObj } = routeAndPointGEOjson(data);
         mapRef.current?.changeRoute(routeObj, pointsObj);
       } else {
@@ -189,15 +208,21 @@ const Index = () => {
         targetsItems.push([allTargets[id].latitude, allTargets[id].longitude]);
       }
       abortSortRef.current = new AbortController();
-      console.log(`${userLatitude},${userLongitude}|` + targetsItems.join("|"));
-      const sorted = await getTSP(
+      const { data: sorted } = await getTSP(
         {
           waypoints:
             `${userLatitude},${userLongitude}|` + targetsItems.join("|"),
         },
         abortSortRef.current.signal
       );
-      console.log(sorted.data.points);
+      if (sorted) {
+        const newSortingArray = [];
+        for (let i = 1; i < sorted.points.length; i++) {
+          const sortItem = sorted.points[i];
+          newSortingArray.push(sortTargetsState[sortItem.index - 1]);
+        }
+        setSortTargetsState(newSortingArray);
+      }
     } catch (err) {
       console.log(err);
     }
@@ -206,17 +231,40 @@ const Index = () => {
     item,
     drag,
     isActive,
+    getIndex,
   }: {
     item: string;
     drag: () => void;
     isActive: boolean;
+    getIndex: () => number;
   }) => {
+    const hasDitail = directionDitails[getIndex()];
     return (
       <ScaleDecorator>
-        <TouchableOpacity onLongPress={drag} disabled={isActive}>
+        <TouchableOpacity
+          className="flex w-full flex-col"
+          onLongPress={drag}
+          disabled={isActive}
+        >
           <View
-            className={`h-8 w-1 mx-auto border-r border-dashed ${isActive ? "!border-transparent" : "border-slate-500/30"}`}
-          />
+            className={`flex flex-row h-10 w-full items-center justify-center gap-1  ${isActive ? "opacity-0" : ""}`}
+          >
+            {hasDitail && (
+              <View className="flex-1 center">
+                <Text className="bg-slate-700/70 rounded-lg py-1 px-4 text-gray-50">
+                  {directionDitails[getIndex()].distance.text}
+                </Text>
+              </View>
+            )}
+            <View className={`h-full w-1 border-r border-dashed`} />
+            {hasDitail && (
+              <View className="flex-1 center">
+                <Text className="bg-slate-700/70 rounded-lg py-1 px-4 text-gray-50">
+                  {directionDitails[getIndex()].duration.text}
+                </Text>
+              </View>
+            )}
+          </View>
           <View className="flex flex-row border border-slate-500/30 p-4 rounded-lg items-center justify-start gap-1 w-full">
             <Drag width={12} height={12} color={"#aaaaaa"} />
             <Location width={25} height={25} color={"#000000"} />
@@ -225,12 +273,13 @@ const Index = () => {
               {targets[item].address?.formatted_address || "آدرس نامشخص"}
             </Text>
             <TouchableOpacity
-              onPress={() => {
+              onPress={async () => {
                 mapRef.current?.removeMarkerTarget(item);
                 removeTarget(item);
                 setSortTargetsState((prev) =>
                   [...prev].filter((id) => id !== item)
                 );
+                mapRef.current?.cleanUpMap(false);
               }}
             >
               <Close width={25} height={25} color={"#af0f0f"} />
@@ -317,13 +366,18 @@ const Index = () => {
                 <Fragment>
                   {hasTarget && (
                     <Fragment>
-                      <TouchableOpacity
-                        onPress={sortTSP}
-                        className="flex  p-4 flex-row items-center justify-center gap-3 rounded-lg border mt-5"
-                      >
-                        <Sort width={25} height={25} color="#000000" />
-                        <Text>مرتب سازی به ترتیب فاصله </Text>
-                      </TouchableOpacity>
+                      {sortTargetsState.length > 1 && (
+                        <TouchableOpacity
+                          onPress={async () => {
+                            await sortTSP();
+                            await directionHandler();
+                          }}
+                          className="flex  p-4 flex-row items-center justify-center gap-3 rounded-lg border mt-5"
+                        >
+                          <Sort width={25} height={25} color="#000000" />
+                          <Text>مرتب سازی به ترتیب فاصله </Text>
+                        </TouchableOpacity>
+                      )}
                       <View className="flex flex-row justify-between items-center h-20 border-y border-gray-200 mt-5">
                         <Text>عبور از طرح ترافیک</Text>
                         <Switch
@@ -395,8 +449,9 @@ const Index = () => {
               }
               keyExtractor={(item) => item}
               data={sortTargetsState}
-              onDragEnd={({ data }) => {
+              onDragEnd={async ({ data }) => {
                 setSortTargetsState(data);
+                await directionHandler();
               }}
               renderItem={renderItem}
             />
@@ -408,9 +463,3 @@ const Index = () => {
 };
 
 export default Index;
-// {Object.keys(targets).map((targetKey) => {
-//   const targetValue = targets[targetKey];
-//   return (
-
-//   );
-// })}

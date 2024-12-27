@@ -14,9 +14,9 @@ export interface MapComponentRef extends DOMImperativeFactory {
   goToUserLocation: (lngLat: LngLat) => void;
   setTargetMarker: (lngLat: LngLat, id: string) => void;
   addTargetMarker: (lngLat: LngLat, id: string) => void;
-  removeMarkerTarget:(id:string)=>void;
+  removeMarkerTarget: (id: string) => void;
   changeRoute: (routeObj: GeoJson, pointsObj: GeoJson) => void;
-  cleanUpMap: () => void;
+  cleanUpMap: (clearMarker:boolean) => void;
   resetBearing: () => void;
 }
 
@@ -116,10 +116,14 @@ export default forwardRef<MapComponentRef, object>(function Map(
       changeRoute: (routeObj: GeoJson, pointsObj: GeoJson) => {
         setRouteAndPointsInMap({ route: routeObj, point: pointsObj });
       },
-      cleanUpMap: () => {
-        (Object.values(targetMarkers.current) || []).forEach((targetMarker) => {
-          targetMarker.remove();
-        });
+      cleanUpMap: (clearMarker = true) => {
+        if (clearMarker) {
+          (Object.values(targetMarkers.current) || []).forEach(
+            (targetMarker) => {
+              targetMarker.remove();
+            }
+          );
+        }
         if (mapRef.current?.getLayer("points1"))
           mapRef.current?.removeLayer("points1");
         if (mapRef.current?.getLayer("route-line"))
@@ -149,11 +153,10 @@ export default forwardRef<MapComponentRef, object>(function Map(
           .setLngLat(lngLat)
           .addTo(mapRef.current);
       },
-      removeMarkerTarget:(id:string)=>{
+      removeMarkerTarget: (id: string) => {
         if (targetMarkers.current[id]) {
           targetMarkers.current[id]?.remove();
-          delete targetMarkers.current[id]
-          
+          delete targetMarkers.current[id];
         }
       },
       resetBearing: () => {
